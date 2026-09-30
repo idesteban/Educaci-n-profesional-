@@ -161,6 +161,14 @@ async function recorrido(browser, nombre, opciones) {
   await page.keyboard.press('1'); await page.waitForSelector('#sesItem .retro:not([hidden])');
   await page.keyboard.press('Enter'); await page.waitForSelector('text=Ítem 2 de 10');
   paso(`${nombre}: práctica por tema responde con la tecla 1 y avanza con Enter`);
+  for (const caso of ['nomina', 'flujo', 'cartera']) {
+    await page.goto(archivo + '#casos-' + caso); await page.waitForSelector('#casoItem .item');
+    const itc = await page.evaluate((k) => crearItem(E.casos[k].ref), caso);
+    await perfecto(page, '#casoItem', itc); await page.click('#casoItem [data-accion="calificar"]');
+    await page.waitForSelector('#casoItem .retro.ok');
+    if (caso === 'nomina') await foto('caso-nomina');
+  }
+  paso(`${nombre}: casos numéricos de nómina, flujo de caja y edades de cartera al 100 %`);
   await page.goto(archivo + '#errores'); await page.waitForSelector('h1:has-text("Repaso de errores")');
   const nErr = await page.evaluate(() => E.errores.length);
   await foto('errores');

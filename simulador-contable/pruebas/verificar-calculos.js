@@ -90,6 +90,10 @@ seccion('Nómina con salario mínimo 2026');
   igual(alto.fsp, 75000, 'FSP 1 % con 4 SMMLV o más');
   igual(Calc.nomina(3200000).aux, 249095, 'Auxilio para quien gana hasta 2 SMMLV');
   igual(Calc.nomina(4200000).fsp, 0, '4.200.000 no llega a 4 SMMLV');
+  const noExo = Calc.nomina(P.smmlv, { exonerada: false });
+  igual(noExo.ap.salud, 148827, 'Salud empleador 8,5 % sin exoneración');
+  igual(noExo.ap.icbf + noExo.ap.sena, 52527 + 35018, 'ICBF 3 % y SENA 2 % sin exoneración');
+  igual(noExo.aportes, 525657, 'Total aportes sin exoneración');
 }
 
 seccion('Conciliación del repaso');
@@ -199,6 +203,15 @@ for (const g of Object.keys(X.GENERADORES)) {
       }
     }
   }
+}
+for (let s = 1; s <= 300; s++) {
+  const f = X.crearItem(X.refGen('flujoCaja', 1 + (s % 3), s * 131));
+  const v = (id) => f.campos.find((c) => c.id === id).valor;
+  ok(v('final') >= 1000000, `Flujo de caja ${s}: el saldo final respeta el mínimo`);
+  ok(v('disp') - v('prior') > v('final'), `Flujo de caja ${s}: se pagan proveedores`);
+  const c = X.crearItem(X.refGen('edadesCartera', 1 + (s % 3), s * 137));
+  const w = (id) => c.campos.find((x) => x.id === id).valor;
+  igual(w('e1') + w('e2') + w('e3') + w('e4'), w('tot'), `Edades de cartera ${s}: los rangos suman el total`);
 }
 console.log(`  ${totalEj} ejercicios generados y calificados`);
 

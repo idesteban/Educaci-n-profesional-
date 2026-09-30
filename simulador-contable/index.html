@@ -150,6 +150,7 @@ main{min-width:0;padding:20px 16px calc(var(--nav-alto) + 40px + env(safe-area-i
 .btn.peligro{color:var(--mal);border-color:color-mix(in srgb,var(--mal) 45%,transparent)}
 .btn.bloque{width:100%}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn[aria-pressed="true"]{background:var(--acento-suave);border-color:var(--acento);color:var(--acento)}
 .btn svg{width:18px;height:18px}
 .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--gris-suave);color:var(--tinta-2);white-space:nowrap}
 .chip.mts{background:var(--acento);color:var(--acento-tinta)}
@@ -868,6 +869,20 @@ const DIAGNOSTICO = {
   }
 };
 
+/* ---------- Casos prácticos numéricos ----------
+   Cada caso usa uno o varios generadores del motor; se elige uno al azar cada vez. */
+const CASOS_NUMERICOS = [
+  { id: 'causacion', titulo: 'Causación de compra o servicio', desc: 'IVA, retención en la fuente según la base en UVT, reteIVA, reteICA y neto a pagar. A veces la base no alcanza el mínimo.', gens: ['compraBienes', 'servicio'] },
+  { id: 'parqueadero', titulo: 'Factura de venta de parqueadero', desc: 'Facturación fija (mensualidades) o variable (por horas, IVA incluido) y la retención que te practica el cliente (1355).', gens: ['facturacionFija', 'ventasPorHoras'] },
+  { id: 'bancaria', titulo: 'Conciliación bancaria', desc: 'Cheques pendientes, consignaciones en tránsito, GMF, comisiones, intereses y recaudos no registrados; saldos ajustados y asientos.', gens: ['conciliacionBancaria'] },
+  { id: 'recaudos', titulo: 'Conciliación de recaudos del parqueadero', desc: 'Reporte del software contra consignaciones y datáfono (con comisión); diferencia y su explicación.', gens: ['conciliacionRecaudos'] },
+  { id: 'depreciacion', titulo: 'Depreciación en línea recta', desc: '(Costo − residual) ÷ vida útil en meses; depreciación mensual, acumulada y valor en libros, con el asiento.', gens: ['depreciacion'] },
+  { id: 'provision', titulo: 'Provisión y reversión', desc: 'Gasto causado sin factura en el mes 1, reversión y registro real en el mes 2 (o ingreso devengado no facturado).', gens: ['provisionGasto', 'ingresoDevengado'] },
+  { id: 'nomina', titulo: 'Nómina mensual de un empleado', desc: 'Devengado, deducciones, neto, provisión de prestaciones y aportes del empleador, con sus tres asientos.', gens: ['nominaEmpleado'] },
+  { id: 'flujo', titulo: 'Flujo de caja semanal', desc: 'Saldo inicial, recaudos y pagos: qué se programa sin bajar del saldo mínimo y qué se aplaza.', gens: ['flujoCaja'] },
+  { id: 'cartera', titulo: 'Edades de cartera', desc: 'Clasifica facturas en 0–30, 31–60, 61–90 y más de 90 días a una fecha de corte y prioriza el cobro.', gens: ['edadesCartera'] }
+];
+
 /* ---------- Módulos del menú ----------
    Para agregar un módulo nuevo: añade aquí su entrada y registra su vista en VISTAS (bloque interfaz). */
 const MODULOS = [
@@ -876,6 +891,7 @@ const MODULOS = [
   { id: 'mes', nombre: 'Mes completo', corto: 'Mes', icono: 'libro', grupo: 'Principal', inferior: true },
   { id: 'simulacro', nombre: 'Simulacros', corto: 'Simulacro', icono: 'reloj', grupo: 'Principal', inferior: true },
   { id: 'diagnostico', nombre: 'Diagnóstico', icono: 'mapa', grupo: 'Practicar' },
+  { id: 'casos', nombre: 'Casos numéricos', icono: 'casos', grupo: 'Practicar' },
   { id: 'practica', nombre: 'Práctica por tema', icono: 'practica', grupo: 'Practicar' },
   { id: 'errores', nombre: 'Repaso de errores', icono: 'errores', grupo: 'Practicar' },
   { id: 'datos', nombre: 'Datos clave', icono: 'ajustes', grupo: 'Referencia' }
@@ -1850,6 +1866,106 @@ const GENERADORES = {
       };
     } }
 };
+
+Object.assign(GENERADORES, {
+  nominaEmpleado: { etapa: 3, tema: 'nomina', mts: true, titulo: 'Nómina mensual completa de un empleado',
+    crear(r, nivel) {
+      const sal = nivel === 1 ? r.elegir([P.smmlv, 2000000, 2400000]) : nivel === 2 ? r.elegir([P.smmlv, 2600000, 3200000, 3800000, 4500000]) : r.elegir([3200000, 4500000, 7200000, 8500000]);
+      const exonerada = nivel < 3 ? true : r.si(0.5);
+      const n = Calc.nomina(sal, { exonerada }), nombre = r.elegir(NOMBRES.empleados);
+      const { anio, mes } = CONFIG.mesEjercicios, fecha = fechaTxt(diasDelMes(mes, anio), mes, anio);
+      return {
+        enunciado: `<p>${nombre} gana <b>${pesos(sal)}</b> mensuales y trabajó todo ${MESES[mes - 1]}. Riesgo ARL I.</p>` +
+          `<p>${exonerada ? 'El empleador es una sociedad declarante de renta: está exonerado de salud, ICBF y SENA (art. 114-1 ET).' : 'El empleador es una persona natural con un solo trabajador: <b>no</b> aplica la exoneración del art. 114-1, así que paga salud 8,5 %, ICBF 3 % y SENA 2 %.'}</p>` +
+          '<p>Liquida la nómina, la provisión de prestaciones y los aportes del empleador, y registra los tres asientos.</p>',
+        campos: [
+          { id: 'dev', etiqueta: 'Total devengado', valor: n.devengado, pista: 'Salario + auxilio de transporte (solo si gana hasta 2 SMMLV).' },
+          { id: 'salud', etiqueta: 'Salud del empleado (4 %)', valor: n.salud, pista: 'Sobre el salario, sin auxilio.' },
+          { id: 'pension', etiqueta: 'Pensión del empleado (4 %)', valor: n.pension },
+          nivel >= 2 && { id: 'fsp', etiqueta: 'Fondo de Solidaridad Pensional', valor: n.fsp, pista: '1 % si gana 4 SMMLV o más; si no, 0.' },
+          { id: 'neto', etiqueta: 'Neto a pagar', valor: n.neto },
+          { id: 'ces', etiqueta: 'Cesantías del mes', valor: n.cesantias, pista: '8,33 % de salario + auxilio.' },
+          { id: 'int', etiqueta: 'Intereses sobre cesantías del mes', valor: n.intereses, alt: [n.interesesAlt], pista: '1 % de la base (o cesantías × 12 %).' },
+          { id: 'pri', etiqueta: 'Prima del mes', valor: n.prima },
+          { id: 'vac', etiqueta: 'Vacaciones del mes', valor: n.vacaciones, pista: '4,17 % solo del salario.' },
+          { id: 'ap', etiqueta: 'Total aportes del empleador', valor: n.aportes, alt: [n.aportes100], pista: exonerada ? 'Pensión 12 % + ARL 0,522 % + caja 4 %.' : 'Pensión 12 % + salud 8,5 % + ARL 0,522 % + caja 4 % + ICBF 3 % + SENA 2 %.' }
+        ].filter(Boolean),
+        asientos: [
+          asiento('Causación de la nómina', fecha, [D('5105', n.salario, { det: 'Sueldo' }), D('5105', n.aux, { det: 'Auxilio de transporte' }), H('2370', n.salud + n.pension + n.fsp, { eq: EQ_NOMINA, pista: 'Descuentos al trabajador: crédito 2370 (pensión también en 2380).' }), H('2505', n.neto, { pista: 'Neto a pagar: crédito 2505.' })]),
+          asiento('Aportes del empleador', fecha, [D('5105', n.aportes, { alt: [n.aportes100] }), H('2370', n.aportes, { alt: [n.aportes100], eq: EQ_NOMINA })]),
+          asiento('Provisión de prestaciones sociales', fecha, [D('5105', n.prestaciones, { alt: [n.prestacionesAlt] }), H('2610', n.prestaciones, { alt: [n.prestacionesAlt], eq: EQ_PRESTACIONES })])
+        ],
+        sugeridas: ['5105', '2370', '2380', '2505', '2610', '2510', '2515', '2520', '2525'],
+        solucion: pasos([`Devengado = ${miles(n.salario)}${n.aux ? ` + ${miles(n.aux)} (auxilio)` : ' (sin auxilio: gana más de 2 SMMLV)'} = <b>${miles(n.devengado)}</b>.`,
+          `Deducciones: salud ${miles(n.salud)} + pensión ${miles(n.pension)}${n.fsp ? ` + FSP ${miles(n.fsp)}` : ''} = ${miles(n.deducciones)}; neto <b>${miles(n.neto)}</b>.`,
+          `Prestaciones sobre ${miles(n.basePrest)}: cesantías ${miles(n.cesantias)}, intereses ${miles(n.intereses)}, prima ${miles(n.prima)}; vacaciones sobre ${miles(n.salario)}: ${miles(n.vacaciones)}. Total <b>${miles(n.prestaciones)}</b>.`,
+          `Aportes: pensión ${miles(n.ap.pension)}, ARL ${miles(n.ap.arl)}, caja ${miles(n.ap.caja)}${exonerada ? '' : `, salud ${miles(n.ap.salud)}, ICBF ${miles(n.ap.icbf)}, SENA ${miles(n.ap.sena)}`} = <b>${miles(n.aportes)}</b> (con aproximación PILA a $ 100: ${miles(n.aportes100)}).`])
+      };
+    } },
+
+  flujoCaja: { tema: 'tesoreria', mts: true, titulo: 'Flujo de caja semanal y programación de pagos',
+    crear(r, nivel) {
+      const minimo = r.elegir([1000000, 2000000, 3000000]);
+      const recaudos = [['Mensualidades de clientes corporativos', r.monto(4000000, 12000000, 10000)], ['Recaudo estimado por horas (efectivo y datáfono)', r.monto(3000000, 9000000, 10000)]];
+      if (nivel >= 2) recaudos.push(['Abono de cartera vencida', r.monto(1000000, 4000000, 10000)]);
+      const prior = [['Nómina quincenal (neto)', r.monto(4000000, 8000000, 10000)], ['Seguridad social y parafiscales (PILA)', r.monto(1200000, 3000000, 10000)]];
+      if (nivel >= 2) prior.push(['Retención en la fuente (formulario 350)', r.monto(800000, 2500000, 10000)]);
+      prior.push(['Servicios públicos', r.monto(800000, 2500000, 10000)]);
+      const margen = r.monto(2500000, 6000000, 10000);
+      const v1 = r.monto(600000, margen * 0.45, 10000), v2 = r.monto(500000, (margen - v1) * 0.9, 10000), v3 = margen - v1 - v2 + r.monto(200000, 2000000, 10000);
+      const provs = r.varios(NOMBRES.proveedoresServicios.concat(NOMBRES.proveedoresBienes), 3);
+      const dias = [r.ent(1, 2), r.ent(3, 4), r.ent(5, 7)];
+      const pagos = [{ p: provs[0], v: v1, d: dias[0] }, { p: provs[1], v: v2, d: dias[1] }, { p: provs[2], v: v3, d: dias[2] }];
+      let saldo = minimo + margen + suma(prior, (x) => x[1]) - suma(recaudos, (x) => x[1]);
+      if (saldo < 1000000) { recaudos[0][1] += 1000000 - saldo; saldo = 1000000; }
+      const disponible = saldo + suma(recaudos, (x) => x[1]), totalPrior = suma(prior, (x) => x[1]), final = disponible - totalPrior - v1 - v2;
+      const mostrados = r.barajar(pagos), okIdx = mostrados.indexOf(pagos[2]);
+      return {
+        enunciado: `<p>Prepara la programación de pagos de la semana. Saldo inicial en bancos: <b>${pesos(saldo)}</b>. La política exige no bajar de un saldo mínimo de <b>${pesos(minimo)}</b>. Primero van las obligaciones legales y críticas; luego los proveedores por fecha de vencimiento (el que vence antes, primero), sin pagos parciales.</p>` +
+          '<div class="desplazar"><table class="tabla"><thead><tr><th>Concepto</th><th class="num">Valor</th></tr></thead><tbody>' +
+          recaudos.map(([c, x]) => `<tr><td>Recaudo: ${c}</td><td class="num mono">${pesos(x)}</td></tr>`).join('') + prior.map(([c, x]) => `<tr><td>Pago obligatorio: ${c}</td><td class="num mono">${pesos(x)}</td></tr>`).join('') +
+          mostrados.map((x) => `<tr><td>Proveedor ${x.p} (vence en ${x.d} ${x.d === 1 ? 'día' : 'días'})</td><td class="num mono">${pesos(x.v)}</td></tr>`).join('') + '</tbody></table></div>',
+        campos: [
+          { id: 'disp', etiqueta: 'Total disponible (saldo + recaudos)', valor: disponible },
+          { id: 'prior', etiqueta: 'Total de pagos obligatorios', valor: totalPrior },
+          { id: 'aplaza', tipo: 'opcion', etiqueta: '¿Qué pago de proveedor se aplaza?', ops: mostrados.map((x) => `${x.p} (${pesos(x.v)})`), ok: okIdx, pista: 'Paga por orden de vencimiento mientras el saldo no baje del mínimo.' },
+          { id: 'final', etiqueta: 'Saldo final proyectado', valor: final, pista: 'Disponible − obligatorios − proveedores que sí se pagan.' }
+        ],
+        asientos: [],
+        solucion: pasos([`Disponible = ${miles(saldo)} + ${recaudos.map((x) => miles(x[1])).join(' + ')} = <b>${miles(disponible)}</b>.`, `Obligatorios = <b>${miles(totalPrior)}</b>; quedan ${miles(disponible - totalPrior)}.`,
+          `Por vencimiento: ${pagos[0].p} (${miles(v1)}) y ${pagos[1].p} (${miles(v2)}) caben sin bajar de ${miles(minimo)}; ${pagos[2].p} (${miles(v3)}) dejaría el saldo en ${pesos(final - v3)}, por debajo del mínimo: se aplaza y se negocia la fecha.`,
+          `Saldo final proyectado = <b>${miles(final)}</b>.`])
+      };
+    } },
+
+  edadesCartera: { tema: 'tesoreria', mts: true, titulo: 'Informe de edades de cartera',
+    crear(r, nivel) {
+      const { anio, mes } = CONFIG.mesEjercicios, ult = diasDelMes(mes, anio), corte = new Date(anio, mes - 1, ult);
+      const n = nivel === 1 ? 5 : nivel === 2 ? 7 : 9;
+      const rangos = nivel >= 3 ? [[28, 30], [31, 33], [58, 62], [88, 92], [95, 170], [3, 27], [34, 57], [63, 87]] : [[3, 30], [31, 60], [61, 90], [91, 170]];
+      const facturas = Array.from({ length: n }, (_, k) => {
+        const [a, b] = rangos[k % rangos.length], dias = r.ent(a, b), f = new Date(corte.getTime() - dias * 864e5);
+        return { cliente: r.elegir(NOMBRES.clientes), num: 'FE-' + r.ent(1000, 9999), f, dias: Math.round((corte - f) / 864e5), v: r.monto(300000, 9000000, 1000) };
+      });
+      const lista = r.barajar(facturas);
+      const b = { e1: 0, e2: 0, e3: 0, e4: 0 };
+      for (const x of lista) b[x.dias <= 30 ? 'e1' : x.dias <= 60 ? 'e2' : x.dias <= 90 ? 'e3' : 'e4'] += x.v;
+      const vieja = lista.reduce((m, x) => (x.dias > m.dias ? x : m), lista[0]);
+      const ops = r.barajar([vieja].concat(r.varios(lista.filter((x) => x !== vieja), 3)));
+      return {
+        enunciado: `<p>Prepara el informe de edades de cartera con corte al <b>${fechaTxt(ult, mes, anio)}</b>. Los días se cuentan desde la fecha de la factura hasta el corte.</p>` +
+          `<div class="desplazar"><table class="tabla"><thead><tr><th>Cliente</th><th>Factura</th><th>Fecha</th><th class="num">Saldo</th></tr></thead><tbody>${lista.map((x) => `<tr><td>${x.cliente}</td><td>${x.num}</td><td class="mono">${fechaTxt(x.f.getDate(), x.f.getMonth() + 1, x.f.getFullYear())}</td><td class="num mono">${pesos(x.v)}</td></tr>`).join('')}</tbody></table></div>`,
+        campos: [
+          { id: 'e1', etiqueta: '0–30 días', valor: b.e1 }, { id: 'e2', etiqueta: '31–60 días', valor: b.e2 }, { id: 'e3', etiqueta: '61–90 días', valor: b.e3 }, { id: 'e4', etiqueta: 'Más de 90 días', valor: b.e4 },
+          { id: 'tot', etiqueta: 'Total cartera', valor: b.e1 + b.e2 + b.e3 + b.e4 },
+          { id: 'prio', tipo: 'opcion', etiqueta: '¿Qué factura priorizas en la gestión de cobro?', ops: ops.map((x) => `${x.num} – ${x.cliente}`), ok: ops.indexOf(vieja), pista: 'La más antigua tiene más riesgo de no pagarse y de deterioro.' }
+        ],
+        asientos: [],
+        solucion: pasos([...lista.slice().sort((x, y) => y.dias - x.dias).map((x) => `${x.num} (${x.cliente}): ${x.dias} días → ${x.dias <= 30 ? '0–30' : x.dias <= 60 ? '31–60' : x.dias <= 90 ? '61–90' : 'más de 90'} · ${miles(x.v)}`),
+          `Totales: 0–30 ${miles(b.e1)} · 31–60 ${miles(b.e2)} · 61–90 ${miles(b.e3)} · más de 90 ${miles(b.e4)}.`, `Se prioriza ${vieja.num}, la más antigua (${vieja.dias} días). En Excel: =$H$1−A2 para los días y SI.CONJUNTO para el rango.`])
+      };
+    } }
+});
 
 /* ---------- Crear ítems a partir de referencias (reproducibles) ---------- */
 const PREGUNTAS_MAPA = {};
@@ -3285,6 +3401,37 @@ function simResultado(v, r) {
   if (b) b.onclick = () => iniciarSesion('Errores del simulacro', fallados.map(({ it }) => (it.ref.k === 'mcq' ? refPregunta(it.ref.id) : refGen(it.ref.g, it.ref.n))), '#simulacro');
 }
 
+/* ---------- Casos prácticos numéricos ---------- */
+function vistaCasos(v, p) {
+  E.casos = E.casos || {};
+  const caso = CASOS_NUMERICOS.find((c) => c.id === p);
+  if (!caso) {
+    v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Valores nuevos cada vez</span><h1>Casos prácticos numéricos</h1>
+      <p>Escribe los resultados; se validan con tolerancia de ± $2 y al final ves la solución paso a paso con el asiento. Ten a mano la calculadora de la esquina.</p></div>
+      <div class="rejilla">${CASOS_NUMERICOS.map((c, k) => { const st = E.casos[c.id]; return `<a class="tarjeta pila" href="#casos-${c.id}" style="text-decoration:none;color:inherit"><span class="etiqueta">Caso ${k + 1}${st && st.ultimo !== undefined ? ' · último: ' + porcentaje(st.ultimo) : ''}</span><h3>${esc(c.titulo)}</h3><p class="suave">${esc(c.desc)}</p></a>`; }).join('')}</div></div>`;
+    return;
+  }
+  const st = E.casos[caso.id] = E.casos[caso.id] || { nivel: 2, pistas: false };
+  const nuevo = () => { st.g = caso.gens[Math.floor(Math.random() * caso.gens.length)]; st.ref = refGen(st.g, st.nivel); st.resp = null; st.calificado = false; guardar(); };
+  if (!st.ref) nuevo();
+  function pintar() {
+    const item = crearItem(st.ref);
+    v.innerHTML = `<div class="vista"><div class="encabezado"><a class="btn texto" href="#casos" style="align-self:flex-start;padding-left:0">← Casos numéricos</a><span class="etiqueta">Caso ${CASOS_NUMERICOS.indexOf(caso) + 1} de ${CASOS_NUMERICOS.length}</span><h1>${esc(caso.titulo)}</h1></div>
+      <div class="fila entre"><div class="fila" role="group" aria-label="Dificultad">${[1, 2, 3].map((n) => `<button type="button" class="btn" data-nivel="${n}" aria-pressed="${st.nivel === n}">Nivel ${n}</button>`).join('')}</div>
+        <div class="fila"><label class="fila pequeno"><input type="checkbox" id="chkPistas" ${st.pistas ? 'checked' : ''}> Con pistas</label><button type="button" class="btn" id="btnOtroCaso">Otro caso</button></div></div>
+      <div class="tarjeta" id="casoItem"></div></div>`;
+    controlActivo = montarItem($('#casoItem'), item, {
+      modo: 'practica', guiado: st.pistas, resp: st.resp,
+      onCambio: (r) => { st.resp = r; guardar(); },
+      onCalificado: (res, it) => { if (!st.calificado) { st.calificado = true; st.ultimo = res.puntaje; registrarResultado(it, res.puntaje); } }
+    });
+    $$('[data-nivel]', v).forEach((b) => { b.onclick = () => { st.nivel = Number(b.dataset.nivel); nuevo(); pintar(); }; });
+    $('#chkPistas').onchange = (e) => { st.pistas = e.target.checked; guardar(); pintar(); };
+    $('#btnOtroCaso').onclick = () => { nuevo(); pintar(); window.scrollTo(0, 0); };
+  }
+  pintar();
+}
+
 /* ---------- Práctica por tema ---------- */
 function vistaPractica(v) {
   const filas = TEMAS.map((t) => {
@@ -3413,7 +3560,7 @@ function aplicarTema() {
 }
 
 /* ---------- Arranque ---------- */
-const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, practica: vistaPractica, errores: vistaErrores, datos: vistaDatos };
+const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, casos: vistaCasos, practica: vistaPractica, errores: vistaErrores, datos: vistaDatos };
 function iniciar() {
   $('#pucLista').innerHTML = PUC.filter((x) => x.c.length >= 4).map((x) => `<option value="${x.c} — ${esc(x.n)}"></option>`).join('');
   aplicarTema();

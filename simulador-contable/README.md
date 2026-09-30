@@ -34,6 +34,11 @@ Tu progreso se guarda **en el navegador** (localStorage). El celular y el comput
 | **Mi ruta** | Cada etapa tiene 4 pasos: *repaso express* (ejemplo resuelto), *ejercicio guiado* (con pistas y cuentas sugeridas), *ejercicio independiente* (valores nuevos, un intento) y *mini evaluación* (5 ítems). Se avanza con 80 %. Tres aciertos seguidos suben la dificultad; dos fallos seguidos la bajan y dan una pista. |
 | **Mes completo** | El ejercicio estrella: una empresa de propiedades y parqueaderos en Bogotá con saldos iniciales y 22 transacciones. Recorres libro diario, cuentas T, balance de prueba, ajustes y provisiones, conciliación bancaria, balance ajustado, estados financieros e informe de cuentas por pagar y por cobrar. Cada etapa se califica por separado y te dice dónde te equivocaste. Tiene versiones A, B y C, más un modo aleatorio. |
 | **Simulacro MTS** | 2 horas: 13 ejercicios del ciclo contable (70 %) y 15 preguntas (30 %). Sin retroalimentación hasta entregar. Al final: puntaje total y por tema, tiempo usado, revisión de cada ítem y el botón “Practicar mis errores”. También hay un **simulacro rápido** de 20 preguntas en 30 minutos. |
+| **Casos numéricos** | 9 casos con valores nuevos cada vez y 3 niveles: causación con retenciones, factura de parqueadero, conciliación bancaria, conciliación de recaudos, depreciación, provisión y reversión, nómina completa de un empleado, flujo de caja semanal y edades de cartera. |
+| **Práctica por tema** | Preguntas de selección múltiple en 12 temas, con explicación inmediata. Filtros por tema, solo MTS o tus temas débiles. Responde con las teclas 1–4 y avanza con Enter. |
+| **Repaso de errores** | Todo lo que fallas (menos de 80 %) vuelve con valores nuevos hasta que lo aciertes dos veces seguidas. |
+| **Entrevista** | 15 preguntas típicas con una guía STAR armada con tu experiencia real y un campo para escribir y guardar tu respuesta. |
+| **Fichas rápidas** | Tarjetas que se voltean: PUC, tarifas (con los valores vigentes), conciliación, ajustes, prestaciones, documentos, fórmulas, SAP y Excel. Tienen buscador. |
 | **Datos clave** | Parámetros 2026 editables (UVT, SMMLV, bases y tarifas de retención, nómina) con el aviso “verifica la norma vigente” y buscador del PUC. |
 | **Calculadora** | Botón flotante con cinta de sumadora. Acepta operaciones como `1.850.000*19%` y pone el resultado en la casilla activa. |
 
@@ -125,6 +130,12 @@ Cada vez que la persona falla la mini evaluación, vuelve al repaso con el sigui
 ### Agregar una versión del caso Mes completo
 
 Agrega a `MES_VERSIONES` un objeto `{ id: 'D', nombre: 'Versión D', empresa, nit, anio, mes, semilla }`. La semilla fija las cifras; todas las etapas se recalculan solas y siempre cuadran.
+
+### Agregar fichas o preguntas de entrevista
+
+- **Fichas:** agrega a `FICHAS` objetos `{ cat: 'Conciliación', f: 'frente', r: 'reverso (HTML corto)' }`. Una categoría nueva aparece sola como filtro.
+- **Entrevista:** agrega a `ENTREVISTA` objetos `{ id, q, objetivo, S, T, A, R, frases: [...], evitar }`.
+- **Casos numéricos:** agrega a `CASOS_NUMERICOS` objetos `{ id, titulo, desc, gens: ['nombreDelGenerador'] }`.
 
 ### Agregar un módulo al menú
 

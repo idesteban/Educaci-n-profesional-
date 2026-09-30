@@ -21,7 +21,7 @@ vm.runInContext(bloque('datos'), ctx, { filename: 'datos.js' });
 vm.runInContext(bloque('motor'), ctx, { filename: 'motor.js' });
 const X = vm.runInContext(`({ P, Calc, GENERADORES, crearItem, refGen, refPregunta, calificarAsiento, calificarItem, calificarCampo,
   construirMes, versionMes, MES_VERSIONES, PREGUNTAS, TEMAS, ETAPAS, PUC_MAPA, cuentaPUC, leerNumero, pesos, miles,
-  calificarEtapaMes, ETAPAS_MES, construirDiagnostico, construirSimulacro, SIMULACROS, cargarParametros, CONFIG })`, ctx);
+  calificarEtapaMes, ETAPAS_MES, construirDiagnostico, construirSimulacro, SIMULACROS, cargarParametros, CONFIG, FICHAS, ENTREVISTA, CASOS_NUMERICOS })`, ctx);
 
 let pasadas = 0, fallidas = 0;
 const errores = [];
@@ -157,6 +157,14 @@ contiene('AN15', 8000000 + 5000000 - 6500000); contiene('AN10', 30000000 - 24500
 ok(correcta('IM03').includes('$ 0') && 1200000 < Calc.uvt(27), 'IM03: 1.200.000 está por debajo de 27 UVT');
 igual(Math.round((new Date(2026, 8, 30) - new Date(2026, 6, 10)) / 86400000), 82, 'TE03: del 10 de julio al 30 de septiembre hay 82 días (61–90)');
 igual(Math.round(40000 * 1.19) + 0, 47600, 'CO06: comisión 2 % + IVA sobre 2.000.000');
+
+seccion('Fichas, entrevista y casos numéricos');
+for (const f of X.FICHAS) ok(f.cat && f.f && f.r, `Ficha “${f.f}” completa`);
+igual(X.ENTREVISTA.length, 15, 'Hay 15 preguntas de entrevista');
+for (const e of X.ENTREVISTA) ok(e.q && e.S && e.T && e.A && e.R && e.frases.length && e.evitar, `Entrevista ${e.id} con guía STAR completa`);
+igual(new Set(X.ENTREVISTA.map((e) => e.id)).size, 15, 'Entrevista: identificadores únicos');
+igual(X.CASOS_NUMERICOS.length, 9, 'Hay 9 casos prácticos numéricos');
+for (const c of X.CASOS_NUMERICOS) for (const g of c.gens) ok(!!X.GENERADORES[g], `Caso ${c.id}: el generador ${g} existe`);
 
 /* ---------- 3. Ejercicios generados ---------- */
 function respuestaPerfecta(item) {

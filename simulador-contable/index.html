@@ -78,7 +78,7 @@ p{margin:0}
 .marca b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:520px){
   .marca small{display:none}
-  .marca b{font-size:17px}
+  .marca b{font-size:16px}
   .marca-logo{width:32px;height:28px}
   .reloj{font-size:12px;padding:5px 9px}
   .btn-icono{width:36px;height:36px}
@@ -388,6 +388,21 @@ details.plegable>div{padding:0 14px 14px;display:flex;flex-direction:column;gap:
 .plan li.hecho b{text-decoration:line-through;text-decoration-color:var(--tinta-3)}
 .cifras-tablero{gap:26px}
 .enunciado ol{margin:0;padding-left:22px}
+.fila.desliza{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.btn.filtro{min-height:36px;padding:6px 12px;font-size:14px;flex:none}
+.fichas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))}
+.ficha{position:relative;min-height:150px;border:1px solid var(--regla-fuerte);border-radius:12px;background:var(--hoja);padding:0;cursor:pointer;text-align:left;perspective:900px}
+.ficha .cara{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;backface-visibility:hidden;transition:transform .35s ease;overflow:auto}
+.ficha .frente b{font-family:var(--f-display);font-size:18px;line-height:1.2}
+.ficha .frente .pequeno{margin-top:auto}
+.ficha .reverso{transform:rotateY(180deg);background:var(--acento-suave);font-size:14px;line-height:1.45}
+.ficha[aria-pressed="true"] .frente{transform:rotateY(180deg)}
+.ficha[aria-pressed="true"] .reverso{transform:rotateY(360deg)}
+.star{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.star dt{font-weight:600;color:var(--acento);white-space:nowrap}
+.star dd{margin:0}
+@media (max-width:520px){.star{grid-template-columns:1fr}.star dt{margin-top:6px}}
+textarea.area{min-height:120px;resize:vertical;font-size:15px;line-height:1.5}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -971,6 +986,143 @@ const CASOS_NUMERICOS = [
   { id: 'cartera', titulo: 'Edades de cartera', desc: 'Clasifica facturas en 0–30, 31–60, 61–90 y más de 90 días a una fecha de corte y prioriza el cobro.', gens: ['edadesCartera'] }
 ];
 
+/* ---------- Fichas rápidas ----------
+   cat: categoría · f: frente · r: reverso (HTML corto). Las fichas de tarifas y del PUC
+   se generan solas con los parámetros vigentes; aquí van las fichas escritas a mano. */
+const FICHAS = [
+  { cat: 'Conciliación', f: 'Fórmula del saldo ajustado según extracto', r: 'Saldo del extracto <b>− cheques pendientes + consignaciones en tránsito</b> (± errores del banco).' },
+  { cat: 'Conciliación', f: 'Fórmula del saldo ajustado según libros', r: 'Saldo en libros <b>− notas débito</b> (comisiones, GMF, IVA de comisiones) <b>+ notas crédito</b> (intereses, transferencias no registradas) ± errores de libros.' },
+  { cat: 'Conciliación', f: '¿Qué partidas llevan asiento?', r: 'Solo las que el banco registró y la empresa no, y los errores de libros. Cheques pendientes y consignaciones en tránsito no llevan asiento.' },
+  { cat: 'Conciliación', f: 'Abono neto del datáfono', r: 'Ventas con tarjeta − comisión − IVA de la comisión − retenciones de la red de pagos (retefuente sobre la base sin IVA y reteIVA).' },
+  { cat: 'Conciliación', f: 'Diferencia divisible por 9', r: 'Probable transposición de cifras (por ejemplo, 1.520.000 registrado como 1.250.000 → diferencia 270.000 = 9 × 30.000).' },
+  { cat: 'Conciliación', f: 'Recaudos del parqueadero: ¿qué comparas?', r: 'Reporte del software (efectivo, datáfono, QR) contra consignaciones, abonos del datáfono y transferencias del extracto; el efectivo, además, contra el arqueo y el cierre del cajero.' },
+  { cat: 'Ajustes', f: 'Provisión de un gasto no facturado', r: 'Al cierre: débito gasto / crédito 2335. Día 1 del mes siguiente: reversión (asiento contrario). Al llegar la factura: registro normal. Efecto neto = factura − provisión.' },
+  { cat: 'Ajustes', f: 'Ingreso devengado no facturado', r: 'Al cierre: débito 1345 Ingresos por cobrar / crédito 4155 (sin IVA). Día 1: reversión. Al facturar: débito 1305 / crédito 4155 y 2408.' },
+  { cat: 'Ajustes', f: 'Depreciación en línea recta', r: '(Costo − valor residual) ÷ vida útil en meses. Débito 5160 / crédito 1592.' },
+  { cat: 'Ajustes', f: 'Gasto pagado por anticipado', r: 'Al pagar: débito 1705 / crédito 1110. Cada mes: débito gasto / crédito 1705 por total ÷ meses de cobertura.' },
+  { cat: 'Prestaciones', f: 'Cesantías', r: '8,33 % de salario + auxilio de transporte. Se consignan al fondo a más tardar el 14 de febrero.' },
+  { cat: 'Prestaciones', f: 'Intereses sobre cesantías', r: '12 % anual sobre las cesantías (≈ 1 % mensual de la base). Se pagan al trabajador a más tardar el 31 de enero.' },
+  { cat: 'Prestaciones', f: 'Prima de servicios', r: '8,33 % de salario + auxilio. Se paga a más tardar el 30 de junio y el 20 de diciembre.' },
+  { cat: 'Prestaciones', f: 'Vacaciones', r: '4,17 % solo del salario (el auxilio de transporte no es base). 15 días hábiles por año.' },
+  { cat: 'Prestaciones', f: 'Asiento de la provisión mensual', r: 'Débito 5105 (510530, 510533, 510536, 510539) / crédito 2610 o 2510, 2515, 2520 y 2525.' },
+  { cat: 'Nómina', f: 'Causación de la nómina', r: 'Débito 5105 (sueldos y auxilio) / crédito 2370–2380 (salud y pensión del empleado) / crédito 2505 (neto a pagar).' },
+  { cat: 'Nómina', f: 'Aportes del empleador', r: 'Pensión 12 %, ARL riesgo I 0,522 %, caja 4 %. Salud 8,5 %, ICBF 3 % y SENA 2 % exonerados (art. 114-1) para quien gana menos de 10 SMMLV. Se pagan en la PILA.' },
+  { cat: 'Documentos', f: 'Documento soporte a no obligados', r: 'Lo emite el comprador cuando le compra a quien no está obligado a facturar; se transmite a la DIAN y es necesario para deducir el costo.' },
+  { cat: 'Documentos', f: 'Nota crédito vs. nota débito', r: '<b>Crédito:</b> disminuye una factura (descuentos, devoluciones, anulaciones). <b>Débito:</b> la aumenta (intereses, mayor valor). Siempre referencian la factura.' },
+  { cat: 'Documentos', f: 'CUFE, validación previa y RADIAN', r: '<b>CUFE:</b> código único de la factura. <b>Validación previa:</b> la DIAN valida antes de entregar al cliente. <b>RADIAN:</b> registro de la factura como título valor.' },
+  { cat: 'Documentos', f: 'Nómina electrónica', r: 'Documento soporte de pago de nómina; se transmite dentro de los 10 primeros días hábiles del mes siguiente (verifica el calendario vigente).' },
+  { cat: 'Fórmulas', f: 'Precio con IVA incluido', r: 'Base = total ÷ 1,19. IVA = total − base.' },
+  { cat: 'Fórmulas', f: 'Neto a pagar a un proveedor', r: 'Base + IVA − retención en la fuente − reteIVA − reteICA.' },
+  { cat: 'Fórmulas', f: 'ReteICA', r: 'Base × tarifa por mil ÷ 1.000 (la tarifa depende de la actividad; en Bogotá, por ejemplo, 9,66 por mil en servicios).' },
+  { cat: 'Fórmulas', f: 'Recaudo con retención que te practican', r: 'Débito 1110 (neto) + débito 1355 (retenciones) / crédito 1305 (total de la factura).' },
+  { cat: 'Fórmulas', f: 'Edades de cartera', r: 'Días = fecha de corte − fecha de la factura. Rangos: 0–30, 31–60, 61–90 y más de 90.' },
+  { cat: 'SAP', f: 'FB60 / FB70', r: 'FB60: factura de acreedor (proveedor) sin pedido. FB70: factura de deudor (cliente).' },
+  { cat: 'SAP', f: 'F-53 / F110', r: 'F-53: pago manual a proveedor. F110: programa de pagos automáticos (masivos).' },
+  { cat: 'SAP', f: 'FBL1N / FBL3N / FBL5N', r: 'Partidas individuales de proveedores (1N), cuentas de mayor (3N) y clientes (5N).' },
+  { cat: 'SAP', f: 'FS00 / FB50', r: 'FS00: maestro de cuentas de mayor. FB50: asiento contable de mayor.' },
+  { cat: 'SAP', f: 'FF67 / AS01 / AFAB', r: 'FF67: extracto bancario manual. AS01: crear activo fijo. AFAB: ejecutar la depreciación.' },
+  { cat: 'SAP', f: 'Procure to Pay (P2P)', r: 'Solicitud de pedido (ME51N) → pedido (ME21N) → entrada de mercancías (MIGO) → verificación de factura (MIRO) → pago (F110 o F-53).' },
+  { cat: 'SAP', f: 'Order to Cash (O2C)', r: 'Pedido de venta (VA01) → entrega (VL01N) → factura (VF01) → cobro (F-28).' },
+  { cat: 'Excel', f: 'BUSCARV exacto', r: '=BUSCARV(valor;tabla;columna;FALSO). #N/A: el valor no existe o difiere por espacios o formato (usa RECORTAR o VALOR).' },
+  { cat: 'Excel', f: 'SUMAR.SI.CONJUNTO', r: '=SUMAR.SI.CONJUNTO(rango_suma;rango1;criterio1;rango2;criterio2). Ej.: facturas pendientes de un proveedor.' },
+  { cat: 'Excel', f: 'Referencia absoluta', r: '$F$1 no cambia al copiar la fórmula. Ideal para la tarifa del IVA o la fecha de corte.' }
+];
+
+/* ---------- Preparación de entrevista (método STAR) ----------
+   S: situación · T: tarea · A: acción · R: resultado. Ajusta los datos a tu experiencia real. */
+const ENTREVISTA = [
+  { id: 'e01', q: 'Háblame de ti.', objetivo: 'Tu perfil en 1 o 2 minutos, conectado con el cargo.',
+    S: 'Soy tecnólogo en Contabilidad y Finanzas del SENA y estoy en último semestre de Administración de Empresas en la Universidad Central.',
+    T: 'Llevo cerca de 3 años en áreas contables y administrativas, y busco consolidarme como analista contable.',
+    A: 'He causado facturas, conciliado bancos y llevado cuentas por pagar en la Fundación Hijas de la Caridad; trabajé con SAP en Gedeon Richter y con World Office como asistente contable; en el Banco Agrario controlé activos fijos e inventarios. Este año terminé un diplomado en SAP S/4HANA FI.',
+    R: 'Obtuve percentil 92 en Gestión Financiera en Saber Pro. Traigo base contable, manejo de ERP y orden para cumplir cierres, que es lo que pide el cargo.',
+    frases: ['“Mi fortaleza es el ciclo contable completo: causación, conciliación y cierre.”', '“Me interesa MTS porque combina facturación, recaudos y análisis de cuentas.”'], evitar: 'Contar tu vida desde el colegio o leer la hoja de vida.' },
+  { id: 'e02', q: '¿Por qué dejaste tu último trabajo?', objetivo: 'Que hables en positivo y con honestidad.',
+    S: 'Explica la razón real en una frase neutra (por ejemplo, terminó la práctica o el contrato, o necesitaba tiempo para la etapa final de la carrera).',
+    T: 'Muestra qué buscas ahora: estabilidad y crecimiento en contabilidad.',
+    A: 'Cuenta lo que aprendiste allí: por ejemplo, en Gedeon Richter trabajé con SAP en un entorno de controles estrictos.',
+    R: 'Cierra con por qué este cargo es el siguiente paso lógico.',
+    frases: ['“Terminó mi práctica según lo previsto y quiero aplicar lo aprendido en un cargo de analista.”'], evitar: 'Hablar mal de jefes o empresas anteriores.' },
+  { id: 'e03', q: '¿Cómo haces una conciliación bancaria?', objetivo: 'Método y orden.',
+    S: 'En la Fundación Hijas de la Caridad concilié las cuentas bancarias cada mes.',
+    T: 'Dejar cuadrado el saldo de libros con el extracto al cierre.',
+    A: 'Descargo el extracto y el auxiliar de 1110; cruzo movimiento por movimiento; identifico cheques pendientes y consignaciones en tránsito (ajustan el extracto) y notas débito o crédito no registradas (ajustan libros); verifico que ambos saldos ajustados coincidan y registro las notas contables con soporte.',
+    R: 'Las conciliaciones quedaban listas en los primeros días del mes y sin partidas antiguas sin explicar.',
+    frases: ['“Lo que el banco registró y yo no, lleva asiento; lo que yo registré y el banco no, se espera.”'], evitar: 'Decir que “se ajusta la diferencia” sin identificarla.' },
+  { id: 'e04', q: '¿Qué haces si encuentras una diferencia?', objetivo: 'Análisis, no ajustes a ciegas.',
+    S: 'Una diferencia en la conciliación o entre un auxiliar y el mayor.',
+    T: 'Encontrar la causa con soportes antes de registrar.',
+    A: 'Reviso el valor: si es divisible por 9, busco una transposición; si es igual a una partida, busco un registro en un solo lado; si es el doble, un valor en el lado contrario. Cruzo contra soportes, consulto con el área que originó el movimiento y documento la corrección con nota contable aprobada.',
+    R: 'La diferencia queda explicada y trazable para la revisoría fiscal.',
+    frases: ['“Nunca registro una diferencia sin saber de dónde viene.”'], evitar: 'Llevar la diferencia a gastos diversos para cuadrar.' },
+  { id: 'e05', q: '¿Cuál es tu aspiración salarial?', objetivo: 'Que tengas un rango pensado y justificado.',
+    S: 'Antes de la entrevista revisa el rango de la oferta o de cargos similares en Bogotá en portales de empleo.',
+    T: 'Da un rango, no una cifra única, y deja espacio para negociar.',
+    A: 'Justifica con tu experiencia de 3 años, el manejo de SAP y World Office y tu formación.',
+    R: 'Muestra flexibilidad: te interesa el paquete completo (tipo de contrato, beneficios, crecimiento).',
+    frases: ['“Según mi experiencia y el mercado para este cargo, mi aspiración está entre $ ___ y $ ___, negociable.”'], evitar: 'Decir “lo que ustedes me ofrezcan” o dar una cifra sin haberla pensado.' },
+  { id: 'e06', q: '¿Por qué quieres trabajar en MTS?', objetivo: 'Que conozcas la empresa y el cargo.',
+    S: 'MTS administra propiedades y parqueaderos.',
+    T: 'El cargo combina facturación fija y variable, documentos electrónicos, recaudos, provisiones y análisis de cuentas.',
+    A: 'Relaciona cada función con tu experiencia: causación y cuentas por pagar (Hijas de la Caridad), ERP (SAP), conciliaciones y activos fijos (Banco Agrario).',
+    R: 'Es un cargo donde aportas desde el primer día y sigues creciendo en análisis contable.',
+    frases: ['“Me atrae conciliar la operación real del parqueadero con la contabilidad.”'], evitar: 'Respuestas genéricas que sirven para cualquier empresa.' },
+  { id: 'e07', q: 'Cuéntame de un error contable que cometiste y cómo lo resolviste.', objetivo: 'Responsabilidad y aprendizaje.',
+    S: 'Elige un error real y pequeño (por ejemplo, una factura causada con la retención equivocada).',
+    T: 'Corregirlo antes del cierre o de la declaración.',
+    A: 'Lo detecté al conciliar o revisar, informé a tiempo, hice la nota de corrección y ajusté mi lista de verificación (base mínima en UVT y tarifa según declarante).',
+    R: 'No afectó la declaración y desde entonces reviso bases y tarifas antes de causar.',
+    frases: ['“Desde entonces uso una lista de chequeo para causar facturas.”'], evitar: 'Decir que nunca te has equivocado.' },
+  { id: 'e08', q: '¿Cómo manejas un cierre de mes con fechas ajustadas?', objetivo: 'Organización y prioridades.',
+    S: 'Cierres mensuales con varias tareas al mismo tiempo.',
+    T: 'Entregar a tiempo sin perder calidad.',
+    A: 'Hago un cronograma: primero causaciones pendientes y provisiones, luego conciliaciones, depreciaciones y amortizaciones, reversiones del mes y revisión de saldos contrarios; aviso con anticipación si falta un soporte.',
+    R: 'Cierres a tiempo y con balances razonables.',
+    frases: ['“Trabajo con una lista de cierre y la marco a medida que avanzo.”'], evitar: 'Decir que trabajas mejor bajo presión sin mostrar método.' },
+  { id: 'e09', q: '¿Qué experiencia tienes con facturación electrónica y documentos soporte?', objetivo: 'Conocimiento de la normativa DIAN.',
+    S: 'En mis cargos recibí y causé facturas electrónicas de proveedores y apoyé la emisión de documentos.',
+    T: 'Verificar validez y registrar correctamente.',
+    A: 'Valido el CUFE y los datos antes de causar; conozco la facturación fija y variable, las notas crédito y débito, el documento soporte a no obligados a facturar y la nómina electrónica.',
+    R: 'Registros con soporte válido y costos deducibles.',
+    frases: ['“Una factura validada no se anula: se corrige con nota crédito o débito.”'], evitar: 'Confundir documento soporte con cuenta de cobro.' },
+  { id: 'e10', q: '¿Cómo registras una provisión y su reversión?', objetivo: 'Dominio de ajustes (función del cargo).',
+    S: 'Servicios públicos del mes que se facturan el mes siguiente.',
+    T: 'Reconocer el gasto en el mes correcto.',
+    A: 'Al cierre: débito 5135 / crédito 2335 por el estimado. El día 1 reverso. Al llegar la factura la registro completa; en el mes siguiente solo queda la diferencia de estimación. Igual con ingresos devengados: débito 1345 / crédito 4155 y reversión al facturar.',
+    R: 'Estados financieros por devengo y sin gastos duplicados.',
+    frases: ['“La reversión evita duplicar el gasto cuando llega la factura real.”'], evitar: 'Olvidar la reversión.' },
+  { id: 'e11', q: '¿Qué software contable manejas y cómo aprendes uno nuevo?', objetivo: 'Adaptabilidad.',
+    S: 'Manejo SAP (Gedeon Richter y diplomado S/4HANA FI), World Office (NYM y Comercializadora Expres), SIIGO y Helisa.',
+    T: 'Adaptarte rápido al software de la empresa.',
+    A: 'Aprendo la lógica común: terceros, tipos de comprobante, centros de costo, parametrización de retenciones y cierres; practico con casos reales y uso los manuales.',
+    R: 'En poco tiempo puedo causar, conciliar y sacar reportes en cualquier ERP.',
+    frases: ['“Los programas cambian, pero la partida doble es la misma.”'], evitar: 'Decir que solo sabes usar un programa.' },
+  { id: 'e12', q: '¿Cómo conciliarías los recaudos del parqueadero contra el banco?', objetivo: 'Entender la operación de MTS.',
+    S: 'Recaudos diarios en efectivo, datáfono y transferencias según el software del parqueadero.',
+    T: 'Verificar que todo lo recaudado llegue al banco.',
+    A: 'Cruzo el reporte del software por día y medio de pago con las consignaciones, los abonos del datáfono (netos de comisión, IVA y retenciones) y las transferencias del extracto; el efectivo lo comparo con el arqueo del cajero; documento faltantes, sobrantes y partidas en tránsito.',
+    R: 'Ingresos completos y diferencias explicadas a tiempo.',
+    frases: ['“Cada peso del software debe estar en el banco o explicado.”'], evitar: 'Suponer que el abono del datáfono llega por el valor bruto.' },
+  { id: 'e13', q: 'Háblame de tu manejo de Excel.', objetivo: 'Nivel intermedio demostrable.',
+    S: 'Uso Excel a diario para conciliaciones y reportes.',
+    T: 'Cruzar bases y resumir información.',
+    A: 'Uso BUSCARV y BUSCARX con coincidencia exacta, SUMAR.SI.CONJUNTO, CONTAR.SI, SI.ERROR, referencias absolutas y tablas dinámicas; además manejo Power BI para tableros.',
+    R: 'Reduzco el tiempo de las conciliaciones y entrego reportes claros de cuentas por pagar y por cobrar.',
+    frases: ['“Por ejemplo, con una tabla dinámica armo en minutos el informe de edades de cartera.”'], evitar: 'Decir “avanzado” sin ejemplos.' },
+  { id: 'e14', q: '¿Cuáles son tus fortalezas y tus debilidades?', objetivo: 'Autoconocimiento.',
+    S: 'Fortaleza: orden y análisis (percentil 92 en Gestión Financiera). Debilidad real y en mejora.',
+    T: 'Mostrar que conoces tus puntos a mejorar.',
+    A: 'Ejemplo de debilidad: “retomé la práctica contable después de enfocarme en Administración; por eso me estoy actualizando con ejercicios del ciclo contable y normativa 2026”.',
+    R: 'Cierra con lo que ya mejoraste.',
+    frases: ['“Soy detallista con los soportes y constante con los cierres.”'], evitar: 'Debilidades disfrazadas (“soy perfeccionista”).' },
+  { id: 'e15', q: '¿Dónde te ves en 3 años? ¿Tienes preguntas para nosotros?', objetivo: 'Proyección y motivación.',
+    S: 'Te ves graduado de Administración de Empresas y consolidado en el área contable y financiera.',
+    T: 'Crecer dentro de la empresa.',
+    A: 'Quieres asumir más análisis y responsabilidades en cierres e informes.',
+    R: 'Haz 1 o 2 preguntas: “¿Qué software contable usan?”, “¿Cómo es el proceso de cierre mensual?”, “¿Qué esperan que logre en los primeros 3 meses?”.',
+    frases: ['“Me veo como analista contable senior, apoyando el cierre y el análisis financiero.”'], evitar: 'Decir que no tienes preguntas.' }
+];
+
 /* ---------- Módulos del menú ----------
    Para agregar un módulo nuevo: añade aquí su entrada y registra su vista en VISTAS (bloque interfaz). */
 const MODULOS = [
@@ -982,6 +1134,8 @@ const MODULOS = [
   { id: 'casos', nombre: 'Casos numéricos', icono: 'casos', grupo: 'Practicar' },
   { id: 'practica', nombre: 'Práctica por tema', icono: 'practica', grupo: 'Practicar' },
   { id: 'errores', nombre: 'Repaso de errores', icono: 'errores', grupo: 'Practicar' },
+  { id: 'entrevista', nombre: 'Entrevista', icono: 'entrevista', grupo: 'Preparar' },
+  { id: 'fichas', nombre: 'Fichas rápidas', icono: 'fichas', grupo: 'Referencia' },
   { id: 'datos', nombre: 'Datos clave', icono: 'ajustes', grupo: 'Referencia' }
 ];
 </script>
@@ -3686,6 +3840,55 @@ function vistaErrores(v) {
   $$('[data-quitar]', v).forEach((x) => { x.onclick = () => { const e = lista[Number(x.dataset.quitar)]; E.errores = E.errores.filter((y) => y.clave !== e.clave); guardar(); render(); }; });
 }
 
+/* ---------- Fichas rápidas ---------- */
+function todasLasFichas() {
+  const tarifas = [
+    { cat: 'Tarifas', f: 'UVT 2026 y bases mínimas', r: `UVT ${pesos(P.uvt)}. Compras: ${P.baseComprasUVT} UVT = <b>${pesos(Calc.uvt(P.baseComprasUVT))}</b>. Servicios: ${P.baseServiciosUVT} UVT = <b>${pesos(Calc.uvt(P.baseServiciosUVT))}</b>. Se retiene si la base es igual o superior.` },
+    { cat: 'Tarifas', f: 'Retención en la fuente: compras y servicios', r: `Compras: ${pct(P.rfComprasDecl)} declarante / ${pct(P.rfComprasNoDecl)} no declarante. Servicios: ${pct(P.rfServiciosDecl)} declarante / ${pct(P.rfServiciosNoDecl)} no declarante.` },
+    { cat: 'Tarifas', f: 'Honorarios y arrendamientos', r: `Honorarios persona jurídica ${pct(P.rfHonorariosPJ)} (sin base mínima); persona natural ${pct(P.rfHonorariosPN)} u otra según el caso. Arrendamiento de inmuebles ${pct(P.rfArrendamiento)}.` },
+    { cat: 'Tarifas', f: 'IVA, reteIVA y GMF', r: `IVA general ${pct(P.iva)}. ReteIVA ${pct(P.reteIVA)} del IVA (grandes contribuyentes y agentes designados). GMF 4 × 1.000.` },
+    { cat: 'Tarifas', f: 'SMMLV y auxilio de transporte 2026', r: `SMMLV ${pesos(P.smmlv)}. Auxilio ${pesos(P.auxTransporte)} para quien gana hasta 2 SMMLV (${pesos(2 * P.smmlv)}).` },
+    { cat: 'Tarifas', f: 'Aportes de nómina', r: `Empleado: salud ${pct(P.saludEmpleado)} y pensión ${pct(P.pensionEmpleado)} (FSP ${pct(P.fsp)} desde 4 SMMLV). Empleador: pensión ${pct(P.pensionEmpleador)}, ARL I ${pct(P.arl)}, caja ${pct(P.caja)}; salud ${pct(P.saludEmpleador)}, ICBF ${pct(P.icbf)} y SENA ${pct(P.sena)} exonerados según el art. 114-1.` }
+  ];
+  const puc = ['1105', '1110', '1305', '1330', '1345', '1355', '1592', '1705', '2205', '2335', '2365', '2367', '2368', '2370', '2408', '2505', '2610', '2805', '4155', '4175', '5105', '5135', '5160', '5305'].map((c) => {
+    const x = cuentaPUC(c);
+    return { cat: 'PUC', f: `${c}`, r: `<b>${x.n}</b><br>Naturaleza ${x.nat === 'D' ? 'débito' : 'crédito'}.` };
+  });
+  return tarifas.concat(puc, FICHAS);
+}
+function vistaFichas(v) {
+  const todas = todasLasFichas(), cats = [...new Set(todas.map((x) => x.cat))];
+  let cat = 'Todas', q = '';
+  v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Repaso rápido</span><h1>Fichas rápidas</h1><p>Toca una ficha para voltearla. Las de tarifas usan los valores de “Datos clave”.</p></div>
+    <input class="entrada" id="buscaFicha" placeholder="Buscar (ej.: cesantías, FB60, tránsito, 2365)" aria-label="Buscar fichas">
+    <div class="fila desliza" id="catsFicha">${['Todas'].concat(cats).map((c) => `<button type="button" class="btn filtro" data-cat="${esc(c)}" aria-pressed="${c === 'Todas'}">${esc(c)}</button>`).join('')}</div>
+    <div class="fichas" id="gridFichas"></div></div>`;
+  const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/<[^>]+>/g, '');
+  const pintar = () => {
+    const lista = todas.filter((x) => (cat === 'Todas' || x.cat === cat) && (!q || norm(x.f + ' ' + x.r + ' ' + x.cat).includes(norm(q))));
+    $('#gridFichas').innerHTML = lista.length ? lista.map((x, k) => `<button type="button" class="ficha" aria-pressed="false" data-k="${k}"><span class="cara frente"><span class="etiqueta">${esc(x.cat)}</span><b>${esc(x.f)}</b><span class="pequeno suave">Toca para ver</span></span><span class="cara reverso"><span class="etiqueta">${esc(x.cat)} · ${esc(x.f)}</span><span>${x.r}</span></span></button>`).join('') : '<p class="suave">Sin resultados.</p>';
+    $$('.ficha', v).forEach((b) => { b.onclick = () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); });
+  };
+  $('#buscaFicha').addEventListener('input', (e) => { q = e.target.value; pintar(); });
+  $$('[data-cat]', v).forEach((b) => { b.onclick = () => { cat = b.dataset.cat; $$('[data-cat]', v).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); pintar(); }; });
+  pintar();
+}
+
+/* ---------- Preparación de entrevista ---------- */
+function vistaEntrevista(v, p) {
+  v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Método STAR: situación, tarea, acción y resultado</span><h1>Preparación de entrevista</h1>
+    <p>15 preguntas típicas con una guía de respuesta armada con tu experiencia (Gedeon Richter con SAP, Fundación Hijas de la Caridad, Banco Agrario, World Office y el diplomado SAP S/4HANA). Escribe tu versión, guárdala y practícala en voz alta: 1 a 2 minutos por respuesta.</p></div>
+    <div class="acciones"><button type="button" class="btn primario" id="btnAzar" data-principal>Pregunta al azar</button><span class="pequeno suave">${Object.values(E.entrevista || {}).filter((x) => x && x.trim()).length} de ${ENTREVISTA.length} respuestas escritas</span></div>
+    <div class="pila">${ENTREVISTA.map((x, k) => `<details class="plegable" id="${x.id}" ${p === x.id ? 'open' : ''}><summary>${k + 1}. ${esc(x.q)} ${(E.entrevista || {})[x.id] ? '<span class="chip verde">Escrita</span>' : ''}</summary><div>
+      <p class="suave"><b>Qué evalúan:</b> ${esc(x.objetivo)}</p>
+      <dl class="star"><dt>S · Situación</dt><dd>${esc(x.S)}</dd><dt>T · Tarea</dt><dd>${esc(x.T)}</dd><dt>A · Acción</dt><dd>${esc(x.A)}</dd><dt>R · Resultado</dt><dd>${esc(x.R)}</dd></dl>
+      <p><b>Frases útiles:</b> ${x.frases.map(esc).join(' ')}</p><p class="pequeno"><b>Evita:</b> ${esc(x.evitar)}</p>
+      <div class="campo"><label for="resp-${x.id}">Tu respuesta</label><textarea class="entrada area" id="resp-${x.id}" data-resp="${x.id}" rows="6" placeholder="Escribe tu respuesta con el método STAR…">${esc((E.entrevista || {})[x.id] || '')}</textarea><span class="nota" data-cuenta="${x.id}"></span></div></div></details>`).join('')}</div></div>`;
+  const contar = (id) => { const t = ($(`[data-resp="${id}"]`, v).value || '').trim(), pal = t ? t.split(/\s+/).length : 0; $(`[data-cuenta="${id}"]`, v).textContent = pal ? `${pal} palabras · unos ${Math.max(1, Math.round(pal / 130))} min en voz alta · guardado` : 'Se guarda solo mientras escribes.'; };
+  $$('[data-resp]', v).forEach((t) => { contar(t.dataset.resp); t.addEventListener('input', () => { E.entrevista = E.entrevista || {}; E.entrevista[t.dataset.resp] = t.value; guardar(); contar(t.dataset.resp); }); });
+  $('#btnAzar').onclick = () => { const x = ENTREVISTA[Math.floor(Math.random() * ENTREVISTA.length)]; $$('details', v).forEach((d) => { d.open = d.id === x.id; }); const d = $('#' + x.id, v); d.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+}
+
 /* ---------- Datos clave ---------- */
 function valorParamTexto(p, v) {
   if (p.tipo === 'pct') return String(+(v * 100).toFixed(4)).replace('.', ',');
@@ -3769,7 +3972,7 @@ function aplicarTema() {
 }
 
 /* ---------- Arranque ---------- */
-const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, casos: vistaCasos, practica: vistaPractica, errores: vistaErrores, datos: vistaDatos };
+const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, casos: vistaCasos, practica: vistaPractica, errores: vistaErrores, fichas: vistaFichas, entrevista: vistaEntrevista, datos: vistaDatos };
 function iniciar() {
   $('#pucLista').innerHTML = PUC.filter((x) => x.c.length >= 4).map((x) => `<option value="${x.c} — ${esc(x.n)}"></option>`).join('');
   aplicarTema();

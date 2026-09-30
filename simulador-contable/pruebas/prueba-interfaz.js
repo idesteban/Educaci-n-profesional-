@@ -184,6 +184,20 @@ async function recorrido(browser, nombre, opciones) {
   paso(`${nombre}: simulacro MTS de ${total} ítems (ejercicios y preguntas) se recorre completo`);
   await page.goto(archivo + '#simulacro'); await page.click('#btnAbandonar'); await page.click('#modalSi');
 
+  // Fichas y entrevista
+  await page.goto(archivo + '#fichas'); await page.waitForSelector('h1:has-text("Fichas rápidas")');
+  await page.fill('#buscaFicha', 'cesantías'); await page.waitForSelector('.ficha');
+  await page.click('.ficha >> nth=0');
+  if ((await page.getAttribute('.ficha >> nth=0', 'aria-pressed')) !== 'true') throw new Error('La ficha no se volteó');
+  await foto('fichas');
+  paso(`${nombre}: fichas rápidas con buscador y volteo`);
+  await page.goto(archivo + '#entrevista'); await page.waitForSelector('h1:has-text("Preparación de entrevista")');
+  await page.click('#e03 summary'); await page.fill('#resp-e03', 'Cruzo el extracto con el auxiliar de bancos.');
+  await page.waitForTimeout(400); await page.reload(); await page.waitForSelector('#resp-e03', { state: 'attached' });
+  if (!/extracto/.test(await page.inputValue('#resp-e03'))) throw new Error('La respuesta de entrevista no se guardó');
+  await foto('entrevista');
+  paso(`${nombre}: entrevista con guía STAR y respuesta guardada`);
+
   // Datos clave, calculadora, tema
   await page.goto(archivo + '#datos'); await page.waitForSelector('text=Datos clave 2026');
   await page.fill('#buscaPUC', 'retención');

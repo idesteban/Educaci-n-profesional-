@@ -154,6 +154,19 @@ async function recorrido(browser, nombre, opciones) {
   await page.click('#btnPracticarErr'); await page.waitForSelector('#sesItem .item');
   paso(`${nombre}: “Practicar mis errores” abre una sesión con los fallos`);
 
+  // Práctica por tema (teclado) y repaso de errores
+  await page.goto(archivo + '#practica'); await page.waitForSelector('h1:has-text("Práctica por tema")');
+  await foto('practica');
+  await page.click('[data-tema="impuestos"]'); await page.waitForSelector('#sesItem .opcion');
+  await page.keyboard.press('1'); await page.waitForSelector('#sesItem .retro:not([hidden])');
+  await page.keyboard.press('Enter'); await page.waitForSelector('text=Ítem 2 de 10');
+  paso(`${nombre}: práctica por tema responde con la tecla 1 y avanza con Enter`);
+  await page.goto(archivo + '#errores'); await page.waitForSelector('h1:has-text("Repaso de errores")');
+  const nErr = await page.evaluate(() => E.errores.length);
+  await foto('errores');
+  await page.click('#btnRepasar'); await page.waitForSelector('#sesItem .item');
+  paso(`${nombre}: repaso de errores (${nErr} guardados) abre la sesión espaciada`);
+
   // Simulacro MTS: abrir cada ítem (ejercicios incluidos) y abandonar
   await page.goto(archivo + '#simulacro-mts'); await page.waitForSelector('#btnEmpezarSim');
   await page.click('#btnEmpezarSim'); await page.waitForSelector('#simItem .item');

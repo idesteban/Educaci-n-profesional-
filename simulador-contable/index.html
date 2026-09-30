@@ -876,6 +876,8 @@ const MODULOS = [
   { id: 'mes', nombre: 'Mes completo', corto: 'Mes', icono: 'libro', grupo: 'Principal', inferior: true },
   { id: 'simulacro', nombre: 'Simulacros', corto: 'Simulacro', icono: 'reloj', grupo: 'Principal', inferior: true },
   { id: 'diagnostico', nombre: 'Diagnóstico', icono: 'mapa', grupo: 'Practicar' },
+  { id: 'practica', nombre: 'Práctica por tema', icono: 'practica', grupo: 'Practicar' },
+  { id: 'errores', nombre: 'Repaso de errores', icono: 'errores', grupo: 'Practicar' },
   { id: 'datos', nombre: 'Datos clave', icono: 'ajustes', grupo: 'Referencia' }
 ];
 </script>
@@ -2715,13 +2717,14 @@ function textoReloj() {
   const d = Math.floor(dif / 864e5), h = Math.floor((dif % 864e5) / 36e5), m = Math.floor((dif % 36e5) / 6e4);
   return 'MTS en ' + (d ? `${d} d ${h} h` : `${h} h ${m} min`);
 }
-function practicarErrores() {
+function practicarErrores(volver) {
   const ahora = Date.now();
-  const lista = E.errores.slice().sort((a, b) => a.proxima - b.proxima).slice(0, 12);
+  const orden = E.errores.slice().sort((a, b) => a.proxima - b.proxima);
+  const vencidos = orden.filter((e) => e.proxima <= ahora);
+  const lista = (vencidos.length ? vencidos : orden).slice(0, 12);
   if (!lista.length) { avisar('No tienes errores pendientes. ¡Bien!'); return; }
   const refs = lista.map((e) => (e.ref.k === 'mcq' ? refPregunta(e.ref.id) : refGen(e.ref.g, e.ref.n || 1)));
-  iniciarSesion(`Repaso de errores (${refs.length})`, refs, '#inicio');
-  void ahora;
+  iniciarSesion(`Repaso de errores (${refs.length})`, refs, typeof volver === 'string' ? volver : '#errores');
 }
 function iniciarSesion(titulo, refs, volver) { E.sesion = { titulo, refs, i: 0, res: [], volver: volver || '#inicio' }; guardar(); ir('sesion'); }
 
@@ -2767,8 +2770,8 @@ function vistaInicio(v) {
         ${E.errores.length ? `<button type="button" class="btn" id="btnErrores">${icono('errores')} Practicar mis ${E.errores.length} errores</button>` : '<p class="suave pequeno">Tus errores se guardan solos para repasarlos después.</p>'}
       </div>
     </div></div>`;
-  const b = $('#btnErrores'); if (b) b.onclick = practicarErrores;
-  $$('[data-plan="errores"]', v).forEach((x) => { x.onclick = practicarErrores; });
+  const b = $('#btnErrores'); if (b) b.onclick = () => practicarErrores('#inicio');
+  $$('[data-plan="errores"]', v).forEach((x) => { x.onclick = () => ir('errores'); });
   const iv = setInterval(() => { const c = $('#cifrasCuenta'); if (c) c.innerHTML = cuentaRegresivaHTML(); }, 30000);
   return () => clearInterval(iv);
 }
@@ -2990,7 +2993,7 @@ function vistaSesion(v) {
     const prom = s.res.length ? suma(s.res) / s.res.length : 0;
     v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Sesión terminada</span><h1>${esc(s.titulo)}</h1></div><div class="tarjeta pila"><div class="dato-grande">${porcentaje(prom)}</div><p>${s.res.filter((x) => x >= CONFIG.umbralAprobado).length} de ${s.res.length} ítems con 80 % o más. ${E.errores.length ? `Te quedan ${E.errores.length} errores por repasar.` : 'No te quedan errores pendientes.'}</p>
       <div class="acciones"><a class="btn primario" href="${esc(s.volver)}" data-principal>Volver</a>${E.errores.length ? '<button type="button" class="btn" id="otraRonda">Otra ronda de errores</button>' : ''}</div></div></div>`;
-    const b = $('#otraRonda'); if (b) b.onclick = practicarErrores;
+    const b = $('#otraRonda'); if (b) b.onclick = () => practicarErrores(s.volver);
     return;
   }
   const item = crearItem(s.refs[s.i]);
@@ -3282,6 +3285,51 @@ function simResultado(v, r) {
   if (b) b.onclick = () => iniciarSesion('Errores del simulacro', fallados.map(({ it }) => (it.ref.k === 'mcq' ? refPregunta(it.ref.id) : refGen(it.ref.g, it.ref.n))), '#simulacro');
 }
 
+/* ---------- Práctica por tema ---------- */
+function vistaPractica(v) {
+  const filas = TEMAS.map((t) => {
+    const qs = PREGUNTAS.filter((q) => q.t === t.id), s = E.temas[t.id];
+    return { t, n: qs.length, mts: qs.filter((q) => q.mts).length, p: s && s.n ? s.ok / s.n : null };
+  });
+  v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Selección múltiple</span><h1>Práctica por tema</h1>
+    <p>${PREGUNTAS.length} preguntas en ${TEMAS.length} temas, con retroalimentación inmediata y la explicación de cada respuesta. Responde con las teclas 1 a 4 y pasa con Enter.</p></div>
+    <div class="acciones"><button type="button" class="btn primario" data-mezcla="mts" data-principal>10 preguntas de la oferta MTS</button><button type="button" class="btn" data-mezcla="todas">10 preguntas de todos los temas</button>${filas.some((f) => f.p !== null && f.p < 0.6) ? '<button type="button" class="btn" data-mezcla="debiles">10 de mis temas débiles</button>' : ''}</div>
+    <div class="rejilla">${filas.map((f) => `<div class="tarjeta pila"><div class="fila entre"><h3>${esc(f.t.nombre)}</h3>${f.p === null ? '' : `<span class="chip ${colorNivel(f.p)}">${porcentaje(f.p)}</span>`}</div>
+      <span class="pequeno suave">${f.n} preguntas${f.mts ? ` · ${f.mts} con etiqueta MTS` : ''}</span>
+      <div class="acciones"><button type="button" class="btn" data-tema="${f.t.id}">Practicar 10</button>${f.mts ? `<button type="button" class="btn texto" data-tema-mts="${f.t.id}">Solo MTS</button>` : ''}</div></div>`).join('')}</div></div>`;
+  const lanzar = (titulo, pool) => {
+    if (!pool.length) { avisar('No hay preguntas con ese filtro.'); return; }
+    const r = crearAzar(semillaNueva());
+    iniciarSesion(titulo, r.barajar(pool).slice(0, 10).map((q) => refPregunta(q.id)), '#practica');
+  };
+  $$('[data-tema]', v).forEach((b) => { b.onclick = () => lanzar('Práctica: ' + temaNombre(b.dataset.tema), PREGUNTAS.filter((q) => q.t === b.dataset.tema)); });
+  $$('[data-tema-mts]', v).forEach((b) => { b.onclick = () => lanzar('Práctica MTS: ' + temaNombre(b.dataset.temaMts), PREGUNTAS.filter((q) => q.t === b.dataset.temaMts && q.mts)); });
+  $$('[data-mezcla]', v).forEach((b) => { b.onclick = () => {
+    const k = b.dataset.mezcla;
+    if (k === 'mts') lanzar('Práctica: oferta MTS', PREGUNTAS.filter((q) => q.mts));
+    else if (k === 'todas') lanzar('Práctica: todos los temas', PREGUNTAS);
+    else { const deb = filas.filter((f) => f.p !== null && f.p < 0.6).map((f) => f.t.id); lanzar('Práctica: temas débiles', PREGUNTAS.filter((q) => deb.includes(q.t))); }
+  }; });
+}
+
+/* ---------- Repaso de errores (repetición espaciada) ---------- */
+function vistaErrores(v) {
+  const ahora = Date.now();
+  const lista = E.errores.slice().sort((a, b) => a.proxima - b.proxima);
+  const vencidos = lista.filter((e) => e.proxima <= ahora).length;
+  const cuando = (e) => e.proxima <= ahora ? '<span class="chip rojo">Para repasar ahora</span>' : `<span class="chip">En ${Math.max(1, Math.round((e.proxima - ahora) / 60000))} min</span>`;
+  v.innerHTML = `<div class="vista"><div class="encabezado"><span class="etiqueta">Repetición espaciada</span><h1>Repaso de errores</h1>
+    <p>Cada pregunta o ejercicio que fallas (menos de 80 %) se guarda aquí. Vuelve con valores nuevos hasta que lo aciertes <b>dos veces seguidas</b>; después del primer acierto espera unos minutos para fijarlo mejor.</p></div>
+    ${lista.length ? `<div class="acciones"><button type="button" class="btn primario" id="btnRepasar" data-principal>Repasar ${vencidos || Math.min(lista.length, 12)} ${vencidos ? 'pendientes' : 'ahora'}</button></div>
+    <div class="pila">${lista.map((e, k) => `<div class="tarjeta plana"><div class="fila entre"><div class="pila" style="gap:4px;min-width:0;flex:1"><div class="fila"><span class="chip">${esc(temaNombre(e.tema))}</span>${cuando(e)}<span class="chip">${e.ref.k === 'mcq' ? 'Pregunta' : 'Ejercicio'}</span></div>
+      <span>${esc(e.titulo)}</span><span class="pequeno suave">Fallada ${e.fallos} ${e.fallos === 1 ? 'vez' : 'veces'} · aciertos seguidos: ${e.seguidas} de 2</span></div>
+      <div class="acciones"><button type="button" class="btn" data-uno="${k}">Practicar</button><button type="button" class="btn texto" data-quitar="${k}">Quitar</button></div></div></div>`).join('')}</div>`
+    : '<div class="tarjeta pila"><h3>No tienes errores pendientes</h3><p class="suave">Cuando falles una pregunta o un ejercicio en cualquier módulo, aparecerá aquí.</p><a class="btn primario" href="#simulacro-rapido">Hacer un simulacro rápido</a></div>'}</div>`;
+  const b = $('#btnRepasar'); if (b) b.onclick = () => practicarErrores('#errores');
+  $$('[data-uno]', v).forEach((x) => { x.onclick = () => { const e = lista[Number(x.dataset.uno)]; iniciarSesion('Repaso de un error', [e.ref.k === 'mcq' ? refPregunta(e.ref.id) : refGen(e.ref.g, e.ref.n || 1)], '#errores'); }; });
+  $$('[data-quitar]', v).forEach((x) => { x.onclick = () => { const e = lista[Number(x.dataset.quitar)]; E.errores = E.errores.filter((y) => y.clave !== e.clave); guardar(); render(); }; });
+}
+
 /* ---------- Datos clave ---------- */
 function valorParamTexto(p, v) {
   if (p.tipo === 'pct') return String(+(v * 100).toFixed(4)).replace('.', ',');
@@ -3365,7 +3413,7 @@ function aplicarTema() {
 }
 
 /* ---------- Arranque ---------- */
-const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, datos: vistaDatos };
+const VISTAS = { inicio: vistaInicio, diagnostico: vistaDiagnostico, ruta: vistaRuta, etapa: vistaEtapa, mes: vistaMes, simulacro: vistaSimulacro, sesion: vistaSesion, practica: vistaPractica, errores: vistaErrores, datos: vistaDatos };
 function iniciar() {
   $('#pucLista').innerHTML = PUC.filter((x) => x.c.length >= 4).map((x) => `<option value="${x.c} — ${esc(x.n)}"></option>`).join('');
   aplicarTema();

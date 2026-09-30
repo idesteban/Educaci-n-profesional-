@@ -529,10 +529,37 @@ const PUC = [
    guiado / independiente / mini: generadores de ejercicios del motor.
    mini.mcq: cuántas preguntas del banco (con esa etapa) entran en la mini evaluación. */
 const ETAPAS = [
-  { id: 1, nombre: 'Ecuación contable y naturaleza de las cuentas', corto: 'Ecuación y naturaleza', disponible: false,
-    guiado: ['ecuacion'], independiente: ['ecuacion'], mini: { gens: ['ecuacion'], mcq: 3 }, repaso: [] },
-  { id: 2, nombre: 'Documentos soporte', corto: 'Documentos soporte', disponible: false,
-    guiado: ['documentoSoporte'], independiente: ['documentoSoporte'], mini: { gens: ['documentoSoporte'], mcq: 4 }, repaso: [] },
+  { id: 1, nombre: 'Ecuación contable y naturaleza de las cuentas', corto: 'Ecuación y naturaleza', disponible: true,
+    guiado: ['naturalezaCuentas', 'ecuacion'], independiente: ['ecuacion', 'naturalezaCuentas'], mini: { gens: ['ecuacion', 'naturalezaCuentas'], mcq: 2 },
+    repaso: [
+      { titulo: 'La ecuación contable siempre queda en equilibrio',
+        concepto: '<p><b>Activo = Pasivo + Patrimonio.</b> El activo es lo que la empresa controla (dinero, cartera, equipos); el pasivo, lo que debe a terceros; el patrimonio, lo que pertenece a los socios. Toda transacción mantiene la igualdad: si aumenta un lado, aumenta el otro o disminuye otra cuenta del mismo lado.</p>',
+        enunciado: 'Una empresa tiene activos por $ 100.000.000 y pasivos por $ 40.000.000. Compra un equipo de cómputo a crédito por $ 5.000.000.',
+        pasos: ['Patrimonio inicial = 100.000.000 − 40.000.000 = <b>60.000.000</b>.', 'La compra aumenta el activo (equipo) y el pasivo (proveedores) en 5.000.000.', 'Después: activo <b>105.000.000</b> = pasivo 45.000.000 + patrimonio 60.000.000. ✔'],
+        asiento: [['1528', 5000000, 0], ['2205', 0, 5000000]],
+        nota: 'Solo los ingresos y los gastos cambian el patrimonio (a través de la utilidad o la pérdida).' },
+      { titulo: 'Naturaleza débito o crédito de cada clase del PUC',
+        concepto: '<p><b>Débito:</b> activos (clase 1) y gastos y costos (clases 5, 6 y 7) aumentan por el débito. <b>Crédito:</b> pasivos (2), patrimonio (3) e ingresos (4) aumentan por el crédito. Las cuentas <b>correctoras</b> van al revés: 1592 Depreciación acumulada y 1399 Deterioro son de naturaleza crédito aunque estén en la clase 1.</p>',
+        enunciado: 'Vendes de contado mensualidades de parqueadero por $ 2.000.000 + IVA 19 % y el cliente paga por transferencia.',
+        pasos: ['Entra dinero al banco (activo, aumenta): débito 1110 por <b>2.380.000</b>.', 'Se gana un ingreso (aumenta): crédito 4155 por <b>2.000.000</b>.', 'Se genera IVA por pagar (pasivo, aumenta): crédito 2408 por <b>380.000</b>.'],
+        asiento: [['1110', 2380000, 0], ['4155', 0, 2000000], ['2408', 0, 380000]],
+        nota: 'Pregunta clave en cada línea: ¿la cuenta aumenta o disminuye? y ¿cuál es su naturaleza?' }
+    ] },
+  { id: 2, nombre: 'Documentos soporte', corto: 'Documentos soporte', disponible: true,
+    guiado: ['documentosSoporte'], independiente: ['documentosSoporte', 'documentoSoporte'], mini: { gens: ['documentosSoporte', 'documentoSoporte'], mcq: 3 },
+    repaso: [
+      { titulo: 'Documentos de ingresos, egresos y bancos',
+        concepto: '<p><b>Recibo de caja:</b> soporta el dinero que entra (recaudos). <b>Comprobante de egreso:</b> soporta los pagos, con la aprobación y según el flujo de caja. <b>Consignación:</b> soporta el depósito del efectivo en el banco. <b>Extracto:</b> lo emite el banco y sirve para conciliar. <b>Nota de contabilidad:</b> soporta ajustes, provisiones, reversiones y reclasificaciones que no mueven dinero.</p>',
+        enunciado: 'Clínica Los Andes S.A.S. paga en efectivo, en la taquilla, su factura por $ 1.190.000. Se elabora el recibo de caja.',
+        pasos: ['Documento: <b>recibo de caja</b> a nombre del cliente, aplicado a su factura.', 'Entra efectivo: débito 1105 Caja por 1.190.000.', 'Disminuye la cartera del cliente: crédito 1305 por 1.190.000.', 'Al consignar el efectivo se elabora la consignación: débito 1110 / crédito 1105.'],
+        asiento: [['1105', 1190000, 0], ['1305', 0, 1190000]] },
+      { titulo: 'Documentos electrónicos ante la DIAN',
+        concepto: '<p><b>Factura electrónica de venta:</b> validada previamente por la DIAN, identificada con el CUFE; puede ser fija (mensualidades) o variable (por uso). <b>Nota crédito:</b> disminuye una factura (descuentos, devoluciones); <b>nota débito:</b> la aumenta. <b>Documento soporte en adquisiciones a no obligados a facturar:</b> lo emite el comprador. <b>Nómina electrónica:</b> documento soporte de pago de nómina que se transmite cada mes.</p>',
+        enunciado: 'Un cliente pagó 2 cupos que no usó. Emites una nota crédito electrónica por $ 500.000 + IVA 19 %, que referencia la factura original.',
+        pasos: ['Se disminuye el ingreso: débito 4175 Devoluciones (o 4155) por <b>500.000</b>.', 'Se disminuye el IVA generado: débito 2408 por <b>95.000</b>.', 'Baja la cuenta por cobrar: crédito 1305 por <b>595.000</b>.'],
+        asiento: [['4175', 500000, 0], ['2408', 95000, 0], ['1305', 0, 595000]],
+        nota: 'Una factura electrónica validada no se borra ni se anula: se corrige con notas.' }
+    ] },
   { id: 3, nombre: 'Análisis de transacciones y asientos en el libro diario', corto: 'Asientos en el diario', mts: true, disponible: true,
     guiado: ['compraBienes', 'servicio', 'facturacionFija', 'nomina'],
     independiente: ['compraBienes', 'servicio', 'honorarios', 'arrendamiento', 'facturacionFija', 'ventasPorHoras', 'documentoSoporte', 'pagoProveedor', 'anticipo', 'nomina'],
@@ -557,10 +584,35 @@ const ETAPAS = [
         asiento: [['5105', 2000000, 0], ['2370', 0, 140072], ['2505', 0, 1859928]],
         nota: 'La pensión del empleado también se puede llevar a 2380 (fondos de pensiones). El simulador acepta ambas.' }
     ] },
-  { id: 4, nombre: 'Mayorización en cuentas T', corto: 'Cuentas T', disponible: false,
-    guiado: ['saldoT'], independiente: ['saldoT'], mini: { gens: ['saldoT'], mcq: 2 }, repaso: [] },
-  { id: 5, nombre: 'Balance de prueba y detección de errores', corto: 'Balance de prueba', disponible: false,
-    guiado: ['errorBalance'], independiente: ['errorBalance'], mini: { gens: ['errorBalance'], mcq: 2 }, repaso: [] },
+  { id: 4, nombre: 'Mayorización en cuentas T', corto: 'Cuentas T', disponible: true,
+    guiado: ['saldoT'], independiente: ['saldoT'], mini: { gens: ['saldoT'], mcq: 2 },
+    repaso: [
+      { titulo: 'Cómo mayorizar una cuenta',
+        concepto: '<p>Mayorizar es llevar cada línea del libro diario a su cuenta del mayor (cuenta T): los débitos a la izquierda y los créditos a la derecha. Saldo de una cuenta de naturaleza débito = saldo inicial + débitos − créditos. En una de naturaleza crédito = saldo inicial + créditos − débitos.</p>',
+        enunciado: '1110 Bancos: saldo inicial $ 5.000.000. En el mes: consignación de recaudos $ 3.000.000, pago a proveedor $ 1.200.000 y pago de nómina $ 800.000.',
+        pasos: ['Débitos: 3.000.000 (consignación).', 'Créditos: 1.200.000 + 800.000 = <b>2.000.000</b>.', 'Saldo = 5.000.000 + 3.000.000 − 2.000.000 = <b>6.000.000</b> (débito, su naturaleza).'],
+        asiento: [['1110', 3000000, 0], ['1105', 0, 3000000]],
+        nota: 'La tabla muestra el asiento de la consignación, que lleva 3.000.000 al débito de la T de bancos.' },
+      { titulo: 'Saldos contrarios a la naturaleza',
+        concepto: '<p>Si al mayorizar una cuenta queda con saldo del lado contrario a su naturaleza (proveedores débito, clientes crédito, caja crédito), no se deja así: se analiza la causa (anticipo, pago doble, error de imputación) y se reclasifica con una nota de contabilidad.</p>',
+        enunciado: '2205 Proveedores (Tecnoparking): saldo inicial $ 2.000.000 crédito. Se le pagaron $ 2.500.000: $ 500.000 eran un anticipo para un pedido del mes siguiente.',
+        pasos: ['Saldo = 2.000.000 − 2.500.000 = <b>−500.000</b> → saldo débito, contrario a la naturaleza.', 'Causa: anticipo registrado como pago.', 'Reclasificación: débito 1330 Anticipos / crédito 2205 por <b>500.000</b>.'],
+        asiento: [['1330', 500000, 0], ['2205', 0, 500000]] }
+    ] },
+  { id: 5, nombre: 'Balance de prueba y detección de errores', corto: 'Balance de prueba', disponible: true,
+    guiado: ['balancePrueba', 'errorBalance'], independiente: ['errorBalance', 'balancePrueba'], mini: { gens: ['balancePrueba', 'errorBalance'], mcq: 2 },
+    repaso: [
+      { titulo: 'Sumas iguales: el balance de prueba',
+        concepto: '<p>El balance de prueba lista el saldo de cada cuenta del mayor en la columna de su naturaleza (débito o crédito). Si el registro por partida doble está bien, <b>la suma de débitos es igual a la suma de créditos</b>.</p>',
+        enunciado: 'Saldos: 1110 $ 10.000.000; 1305 $ 4.000.000; 1528 $ 6.000.000; 5105 $ 3.000.000; 2205 $ 3.000.000; 3105 $ 12.000.000; 4155 $ 8.000.000.',
+        pasos: ['Débitos (activos y gastos): 10 + 4 + 6 + 3 = <b>23.000.000</b>.', 'Créditos (pasivos, patrimonio e ingresos): 3 + 12 + 8 = <b>23.000.000</b>.', 'Sumas iguales ✔.'],
+        asiento: [] },
+      { titulo: 'Pistas para encontrar el error',
+        concepto: '<p><b>Diferencia divisible por 9:</b> probable transposición de cifras. <b>Diferencia igual a un valor:</b> una partida registrada en un solo lado. <b>Diferencia del doble de un valor:</b> una partida pasada al lado contrario. <b>Errores que no se detectan:</b> un asiento omitido completo o el valor correcto en una cuenta equivocada del mismo lado.</p>',
+        enunciado: 'Débitos $ 45.320.000; créditos $ 45.050.000.',
+        pasos: ['Diferencia = <b>270.000</b>.', '270.000 ÷ 9 = 30.000 → buscar una transposición (por ejemplo, 520.000 registrado como 250.000).', '270.000 ÷ 2 = 135.000 → revisa también si alguna partida de ese valor está en el lado contrario.'],
+        asiento: [] }
+    ] },
   { id: 6, nombre: 'Ajustes al cierre: depreciación, diferidos, provisiones y reversiones', corto: 'Ajustes y reversiones', mts: true, disponible: true,
     guiado: ['provisionGasto', 'depreciacion', 'gastoAnticipado', 'prestaciones'],
     independiente: ['provisionGasto', 'ingresoDevengado', 'depreciacion', 'gastoAnticipado', 'prestaciones'],
@@ -586,9 +638,9 @@ const ETAPAS = [
         nota: 'Si calculas los intereses como cesantías × 12 % (19.992) también es válido: el simulador acepta ambos métodos.' }
     ] },
   { id: 7, nombre: 'Conciliaciones: bancaria, recaudos del parqueadero y cuentas', corto: 'Conciliaciones', mts: true, disponible: true,
-    guiado: ['conciliacionBancaria', 'conciliacionRecaudos'],
-    independiente: ['conciliacionBancaria', 'conciliacionRecaudos'],
-    mini: { gens: ['conciliacionBancaria', 'conciliacionRecaudos'], mcq: 3 },
+    guiado: ['conciliacionBancaria', 'conciliacionRecaudos', 'conciliacionAuxiliar'],
+    independiente: ['conciliacionBancaria', 'conciliacionRecaudos', 'conciliacionAuxiliar'],
+    mini: { gens: ['conciliacionBancaria', 'conciliacionRecaudos', 'conciliacionAuxiliar'], mcq: 2 },
     repaso: [
       { titulo: 'Conciliación bancaria en cuatro pasos',
         concepto: '<p>1) Cruza el extracto con el auxiliar de 1110. 2) Lo que la <b>empresa registró y el banco no</b> ajusta el <b>extracto</b>: cheques pendientes (restan) y consignaciones en tránsito (suman). 3) Lo que el <b>banco registró y la empresa no</b> ajusta los <b>libros</b>: notas débito como comisiones o GMF (restan) y notas crédito como intereses o transferencias (suman). 4) Ambos saldos ajustados deben ser iguales y solo los ajustes de libros llevan asiento.</p>',
@@ -603,12 +655,48 @@ const ETAPAS = [
         asiento: [['5305', 40000, 0], ['2408', 7600, 0], ['1110', 0, 47600]],
         nota: 'La tabla muestra el registro de la comisión del datáfono, suponiendo que las ventas con tarjeta se registraron por el bruto en 1110.' }
     ] },
-  { id: 8, nombre: 'Análisis de cuentas del balance y de resultados', corto: 'Análisis de cuentas', mts: true, disponible: false,
-    guiado: ['reclasificacion'], independiente: ['reclasificacion'], mini: { gens: ['reclasificacion'], mcq: 2 }, repaso: [] },
-  { id: 9, nombre: 'Balance ajustado y estados financieros básicos', corto: 'Estados financieros', disponible: false,
-    guiado: ['utilidadMes'], independiente: ['utilidadMes'], mini: { gens: ['utilidadMes'], mcq: 2 }, repaso: [] },
-  { id: 10, nombre: 'Cierre de cuentas de resultado', corto: 'Cierre', disponible: false,
-    guiado: ['cierre'], independiente: ['cierre'], mini: { gens: ['cierre'], mcq: 2 }, repaso: [] }
+  { id: 8, nombre: 'Análisis de cuentas del balance y de resultados', corto: 'Análisis de cuentas', mts: true, disponible: true,
+    guiado: ['reclasificacion', 'razonabilidad'], independiente: ['reclasificacion', 'razonabilidad'], mini: { gens: ['reclasificacion', 'razonabilidad'], mcq: 2 },
+    repaso: [
+      { titulo: 'Naturaleza e imputación: saldos contrarios',
+        concepto: '<p>Al analizar una cuenta revisa: 1) que el saldo esté en su naturaleza, 2) que cada partida esté en la cuenta correcta (imputación) y 3) que tenga soporte. Casos típicos: <b>proveedores con saldo débito</b> (anticipo o pago doble → 1330), <b>clientes con saldo crédito</b> (anticipo recibido → 2805) y <b>caja con saldo crédito</b> (error de registro).</p>',
+        enunciado: 'El Hotel Parque 93 S.A.S. aparece en 1305 con saldo crédito de $ 1.200.000: pagó por anticipado las mensualidades del mes siguiente.',
+        pasos: ['No es un ingreso todavía: es un <b>anticipo recibido</b> (pasivo).', 'Nota de reclasificación: débito 1305 / crédito 2805 por 1.200.000.', 'Cuando se preste el servicio y se facture, se cruza el anticipo.'],
+        asiento: [['1305', 1200000, 0], ['2805', 0, 1200000]] },
+      { titulo: 'Razonabilidad frente al mes anterior',
+        concepto: '<p>Compara cada cuenta con el mes anterior y con el presupuesto. Una variación grande (por ejemplo, más de 20 %) se investiga con los soportes: facturas duplicadas, provisiones sin reversar, activos registrados como gasto o partidas mal imputadas.</p>',
+        enunciado: '5195 Diversos pasó de $ 1.100.000 a $ 4.650.000. Revisando, encuentras un computador de $ 3.500.000 registrado como gasto (según la política, debe capitalizarse).',
+        pasos: ['Variación = (4.650.000 − 1.100.000) ÷ 1.100.000 = <b>323 %</b>.', 'Causa: activo registrado como gasto.', 'Reclasificación: débito 1528 / crédito 5195 por <b>3.500.000</b>.'],
+        asiento: [['1528', 3500000, 0], ['5195', 0, 3500000]] }
+    ] },
+  { id: 9, nombre: 'Balance ajustado y estados financieros básicos', corto: 'Estados financieros', disponible: true,
+    guiado: ['utilidadMes'], independiente: ['utilidadMes'], mini: { gens: ['utilidadMes'], mcq: 2 },
+    repaso: [
+      { titulo: 'Estado de resultados del mes',
+        concepto: '<p>Se arma con las cuentas de resultado del balance ajustado: <b>ingresos operacionales</b> (41) − <b>gastos operacionales</b> (51 y 52) = utilidad operacional; ± ingresos y gastos no operacionales (42 y 53) = <b>utilidad antes de impuestos</b>.</p>',
+        enunciado: 'Ingresos operacionales $ 30.000.000; ingresos financieros $ 100.000; gastos de administración $ 23.800.000; gastos financieros $ 800.000.',
+        pasos: ['Utilidad operacional = 30.000.000 − 23.800.000 = <b>6.200.000</b>.', 'No operacional = 100.000 − 800.000 = −700.000.', 'Utilidad del mes = <b>5.500.000</b>.'],
+        asiento: [] },
+      { titulo: 'Estado de situación financiera',
+        concepto: '<p>Activo corriente (disponible, deudores, gastos pagados por anticipado) + activo no corriente (propiedad, planta y equipo neta de depreciación) = total activo. Debe ser igual a pasivo + patrimonio, y el patrimonio incluye la <b>utilidad del ejercicio</b>.</p>',
+        enunciado: 'Disponible $ 20.000.000; clientes $ 8.000.000; PPE $ 50.000.000; depreciación acumulada $ 12.000.000; pasivos $ 15.000.000; capital $ 40.000.000; utilidades acumuladas $ 5.500.000; utilidad del mes $ 5.500.000.',
+        pasos: ['Activo = 20 + 8 + 50 − 12 = <b>66.000.000</b>.', 'Pasivo + patrimonio = 15 + 40 + 5,5 + 5,5 = <b>66.000.000</b>. ✔'],
+        asiento: [] }
+    ] },
+  { id: 10, nombre: 'Cierre de cuentas de resultado', corto: 'Cierre', disponible: true,
+    guiado: ['cierre'], independiente: ['cierre'], mini: { gens: ['cierre'], mcq: 2 },
+    repaso: [
+      { titulo: 'Asiento de cierre con utilidad',
+        concepto: '<p>Al cierre del ejercicio las cuentas de resultado quedan en cero: se <b>debitan los ingresos</b> (tienen saldo crédito) y se <b>acreditan los gastos</b> (tienen saldo débito). La diferencia es la utilidad (crédito 3605) o la pérdida (débito 3610). Algunas empresas usan antes 5905 Ganancias y pérdidas.</p>',
+        enunciado: 'Ingresos 4155 $ 50.000.000; gastos 5105 $ 30.000.000 y 5135 $ 12.000.000.',
+        pasos: ['Débito 4155 por 50.000.000.', 'Crédito 5105 por 30.000.000 y 5135 por 12.000.000.', 'Utilidad = 50 − 42 = <b>8.000.000</b> → crédito 3605.'],
+        asiento: [['4155', 50000000, 0], ['5105', 0, 30000000], ['5135', 0, 12000000], ['3605', 0, 8000000]] },
+      { titulo: 'Asiento de cierre con pérdida',
+        concepto: '<p>Si los gastos superan a los ingresos, la diferencia va al <b>débito de 3610 Pérdida del ejercicio</b>, que disminuye el patrimonio.</p>',
+        enunciado: 'Ingresos 4155 $ 20.000.000; gastos 5105 $ 15.000.000 y 5120 $ 8.000.000.',
+        pasos: ['Débito 4155 por 20.000.000.', 'Crédito 5105 por 15.000.000 y 5120 por 8.000.000.', 'Pérdida = 23 − 20 = <b>3.000.000</b> → débito 3610.'],
+        asiento: [['4155', 20000000, 0], ['3610', 3000000, 0], ['5105', 0, 15000000], ['5120', 0, 8000000]] }
+    ] },
 ];
 
 /* ---------- Temas de práctica (banco de preguntas) ---------- */
@@ -1967,6 +2055,127 @@ Object.assign(GENERADORES, {
     } }
 });
 
+const SITUACIONES_DOC = [
+  ['Pagas por transferencia la factura de un proveedor', 'Comprobante de egreso'],
+  ['Un cliente te paga una factura en efectivo en la taquilla', 'Recibo de caja'],
+  ['Registras la depreciación del mes', 'Nota de contabilidad'],
+  ['Compras un servicio a una persona natural no obligada a facturar', 'Documento soporte en adquisiciones a no obligados a facturar'],
+  ['Disminuyes una factura de venta por un descuento', 'Nota crédito electrónica'],
+  ['Cobras intereses de mora sobre una factura ya emitida', 'Nota débito electrónica'],
+  ['Cobras las mensualidades del parqueadero a una empresa', 'Factura electrónica de venta'],
+  ['Llevas al banco el efectivo recaudado en el día', 'Comprobante de consignación'],
+  ['Revisas los movimientos del mes que registró el banco', 'Extracto bancario'],
+  ['Reportas a la DIAN los pagos de nómina del mes', 'Documento soporte de pago de nómina electrónica']
+];
+Object.assign(GENERADORES, {
+  naturalezaCuentas: { etapa: 1, tema: 'causacion', titulo: 'Clase y naturaleza de las cuentas',
+    crear(r, nivel) {
+      const ops = ['Activo – naturaleza débito', 'Activo (correctora) – naturaleza crédito', 'Pasivo – naturaleza crédito', 'Patrimonio – naturaleza crédito', 'Ingreso – naturaleza crédito', 'Gasto – naturaleza débito'];
+      const pool = [['1105', 0], ['1110', 0], ['1305', 0], ['1330', 0], ['1355', 0], ['1528', 0], ['1705', 0], ['2205', 2], ['2335', 2], ['2365', 2], ['2408', 2], ['2505', 2], ['2805', 2], ['3105', 3], ['3605', 3], ['3705', 3], ['4155', 4], ['4210', 4], ['5105', 5], ['5135', 5], ['5160', 5], ['5305', 5]];
+      const n = nivel === 1 ? 4 : nivel === 2 ? 5 : 6;
+      const sel = r.varios(pool, nivel === 1 ? n : n - 1);
+      if (nivel >= 2) sel.splice(r.ent(0, sel.length), 0, r.elegir([['1592', 1], ['1399', 1]]));
+      const v = r.monto(2000000, 9000000, 10000), fecha = hoyEj(r);
+      return {
+        enunciado: `<p>Indica la clase y la naturaleza de cada cuenta.${nivel >= 3 ? ` Luego registra la compra a crédito de un equipo de cómputo por <b>${pesos(v)}</b> (sin IVA para este ejercicio).` : ''}</p>`,
+        campos: sel.map(([c, k], i) => ({ id: 'n' + i, tipo: 'opcion', etiqueta: `${c} ${nombreCuenta(c)}`, ops, ok: k, pista: k === 1 ? 'Es una cuenta correctora del activo: va al revés.' : 'Mira el primer dígito: 1 activo, 2 pasivo, 3 patrimonio, 4 ingreso, 5 gasto.' })),
+        asientos: nivel >= 3 ? [asiento('Compra de equipo a crédito', fecha, [D('1528', v, { pista: 'Aumenta un activo: débito.' }), H('2205', v, { eq: ['2335'], pista: 'Aumenta una deuda: crédito.' })])] : [],
+        sugeridas: ['1528', '2205', '1110', '5195'],
+        solucion: pasos([...sel.map(([c, k]) => `${c} ${nombreCuenta(c)}: <b>${ops[k]}</b>.`), 'Activos y gastos aumentan por el débito; pasivos, patrimonio e ingresos, por el crédito. Las correctoras (1592, 1399) van al revés.'])
+      };
+    } },
+
+  documentosSoporte: { etapa: 2, tema: 'facturacion', mts: true, titulo: 'Documento soporte de cada operación',
+    crear(r, nivel) {
+      const n = nivel === 1 ? 3 : nivel === 2 ? 4 : 5;
+      const sits = r.varios(SITUACIONES_DOC, n), docs = SITUACIONES_DOC.map((x) => x[1]);
+      const campos = sits.map(([sit, doc], i) => {
+        const ops = r.barajar([doc].concat(r.varios(docs.filter((d) => d !== doc), 3)));
+        return { id: 'd' + i, tipo: 'opcion', etiqueta: sit, ops, ok: ops.indexOf(doc), pista: 'Piensa si entra dinero, sale dinero, es un ajuste o es un documento electrónico ante la DIAN.' };
+      });
+      const cli = r.elegir(NOMBRES.clientes), v = r.monto(300000, 3000000, 1000), fecha = hoyEj(r);
+      return {
+        enunciado: '<p>Elige el documento que soporta cada operación.' + (nivel >= 2 ? ` Luego registra el recibo de caja: <b>${cli}</b> paga en efectivo, en la taquilla, su factura por <b>${pesos(v)}</b>.` : '') + '</p>',
+        campos,
+        asientos: nivel >= 2 ? [asiento('Recibo de caja', fecha, [D('1105', v, { pista: 'Entra efectivo a caja: débito 1105.' }), H('1305', v, { pista: 'Disminuye la cartera del cliente: crédito 1305.' })])] : [],
+        sugeridas: ['1105', '1110', '1305', '4155', '2408'],
+        solucion: pasos(sits.map(([sit, doc]) => `${sit}: <b>${doc}</b>.`))
+      };
+    } },
+
+  balancePrueba: { etapa: 5, tema: 'analisis', titulo: 'Arma el balance de prueba',
+    crear(r, nivel) {
+      const base = nivel === 1 ? ['1105', '1110', '1305', '2205', '3105', '4155', '5105'] : ['1105', '1110', '1305', '1528', '1592', '2205', '2365', '2408', '3105', '4155', '5105', '5135', '5305'];
+      const filas = base.map((c) => ({ c, nat: naturaleza(c), v: r.monto(300000, 25000000, 1000) }));
+      const dif = suma(filas.filter((f) => f.nat === 'D'), (f) => f.v) - suma(filas.filter((f) => f.nat === 'C'), (f) => f.v);
+      const cap = filas.find((f) => f.c === '3105'); cap.v += dif;
+      if (cap.v < 5000000) { filas.find((f) => f.c === '1110').v += 5000000 - cap.v; cap.v = 5000000; }
+      const totD = suma(filas.filter((f) => f.nat === 'D'), (f) => f.v), totC = suma(filas.filter((f) => f.nat === 'C'), (f) => f.v);
+      const lista = r.barajar(filas);
+      const campos = [
+        { id: 'td', etiqueta: 'Suma de saldos débito', valor: totD, pista: 'Activos y gastos (menos las correctoras).' },
+        { id: 'tc', etiqueta: 'Suma de saldos crédito', valor: totC, pista: 'Pasivos, patrimonio, ingresos y correctoras como 1592.' }
+      ];
+      if (nivel >= 2) { const ops = ['1592 Depreciación acumulada', '1528 Equipo de computación y comunicación', '1305 Clientes', '1110 Bancos']; campos.push({ id: 'corr', tipo: 'opcion', etiqueta: '¿Qué cuenta de la clase 1 va en la columna crédito?', ops, ok: 0 }); }
+      return {
+        enunciado: '<p>Estos son los saldos del mayor al cierre (todos en su naturaleza normal). Ubícalos en la columna débito o crédito y suma cada columna.</p>' +
+          `<div class="desplazar"><table class="tabla"><thead><tr><th>Cuenta</th><th class="num">Saldo</th></tr></thead><tbody>${lista.map((f) => `<tr><td>${f.c} ${nombreCuenta(f.c)}</td><td class="num mono">${pesos(f.v)}</td></tr>`).join('')}</tbody></table></div>`,
+        campos, asientos: [],
+        solucion: pasos([`Débito: ${lista.filter((f) => f.nat === 'D').map((f) => f.c).join(', ')} → <b>${miles(totD)}</b>.`, `Crédito: ${lista.filter((f) => f.nat === 'C').map((f) => f.c).join(', ')} → <b>${miles(totC)}</b>.`, 'Sumas iguales: el registro por partida doble está completo.'])
+      };
+    } },
+
+  conciliacionAuxiliar: { etapa: 7, tema: 'conciliacion', mts: true, titulo: 'Conciliación de proveedores contra el auxiliar',
+    crear(r, nivel) {
+      const provs = r.varios(NOMBRES.proveedoresServicios.concat(NOMBRES.proveedoresBienes), nivel === 1 ? 4 : 5);
+      const saldos = provs.map((p) => ({ p, s: r.monto(400000, 7000000, 1000) }));
+      const deb = nivel >= 2 ? r.ent(0, saldos.length - 1) : -1;
+      if (deb >= 0) saldos[deb].s = -r.monto(200000, 1500000, 1000);
+      const sumaAux = suma(saldos, (x) => x.s), sinTercero = r.monto(300000, 3000000, 1000), mayor = sumaAux + sinTercero;
+      const causas = ['Hay un movimiento en 2205 registrado sin tercero', 'Un pago se aplicó al proveedor equivocado', 'El IVA descontable quedó en 2205', 'El software sumó mal el mayor'];
+      const campos = [
+        { id: 'aux', etiqueta: 'Suma neta de los auxiliares (saldo crédito)', valor: sumaAux, pista: 'Suma los saldos crédito y resta los saldos débito.' },
+        { id: 'dif', etiqueta: 'Diferencia contra el mayor', valor: mayor - sumaAux },
+        { id: 'causa', tipo: 'opcion', etiqueta: 'Causa más probable de la diferencia', ops: causas, ok: 0, pista: 'Un pago aplicado al proveedor equivocado no cambia el total; un movimiento sin tercero sí.' }
+      ];
+      if (deb >= 0) campos.push({ id: 'deb', tipo: 'opcion', etiqueta: '¿Qué proveedor tiene saldo contrario a la naturaleza?', ops: provs, ok: deb, pista: 'Busca el saldo débito.' });
+      return {
+        enunciado: `<p>Al cierre, el mayor de <b>2205 Proveedores</b> muestra un saldo crédito de <b>${pesos(mayor)}</b>. El auxiliar por tercero muestra:</p>` +
+          `<div class="desplazar"><table class="tabla"><thead><tr><th>Proveedor</th><th class="num">Saldo</th></tr></thead><tbody>${saldos.map((x) => `<tr><td>${x.p}</td><td class="num mono">${pesos(Math.abs(x.s))} ${x.s >= 0 ? 'C' : 'D'}</td></tr>`).join('')}</tbody></table></div><p>Revisando el libro, encuentras una nota contable de causación por ${pesos(sinTercero)} sin tercero asignado.</p>`,
+        campos, asientos: [],
+        solucion: pasos([`Suma neta de auxiliares = <b>${miles(sumaAux)}</b>.`, `Diferencia = ${miles(mayor)} − ${miles(sumaAux)} = <b>${miles(mayor - sumaAux)}</b>: es la nota sin tercero; se corrige asignando el proveedor correcto.`,
+          deb >= 0 ? `${provs[deb]} tiene saldo débito (${pesos(-saldos[deb].s)}): puede ser un anticipo o un pago doble; se analiza y se reclasifica a 1330 si es anticipo.` : '', 'La suma de los auxiliares por tercero siempre debe ser igual al saldo del mayor.'])
+      };
+    } },
+
+  razonabilidad: { etapa: 8, tema: 'analisis', mts: true, titulo: 'Razonabilidad de los gastos frente al mes anterior',
+    crear(r, nivel) {
+      const { anio, mes } = CONFIG.mesEjercicios, fecha = fechaTxt(diasDelMes(mes, anio), mes, anio);
+      const cuentas = ['5105', '5120', '5135', '5145', '5160', '5195'];
+      const filas = cuentas.map((c) => { const ant = r.monto(800000, 14000000, 1000); return { c, ant, act: redondear(ant * (0.95 + r.f() * 0.12) / 1000) * 1000 }; });
+      const caso = r.elegir([
+        { c: '5195', txt: (v) => `un computador de ${pesos(v)} registrado como gasto que, según la política de la empresa, debe capitalizarse`, lin: (v) => [D('1528', v, { pista: 'El activo va a PPE: débito 1528.' }), H('5195', v, { pista: 'Sale del gasto: crédito 5195.' })] },
+        { c: '5145', txt: (v) => `una factura de mantenimiento de ${pesos(v)} registrada dos veces (duplicada)`, lin: (v) => [D('2335', v, { eq: ['2205'], pista: 'Se anula la cuenta por pagar duplicada: débito 2335.' }), H('5145', v, { pista: 'Se reversa el gasto duplicado: crédito 5145.' })] },
+        { c: '5135', txt: (v) => `la provisión de servicios públicos del mes anterior (${pesos(v)}) que no se reversó`, lin: (v) => [D('2335', v, { pista: 'Se reversa la provisión: débito 2335.' }), H('5135', v, { pista: 'Crédito al gasto.' })] }
+      ]);
+      const f = filas.find((x) => x.c === caso.c), extra = r.monto(f.ant * 1.2, f.ant * 2.2, 1000);
+      f.act = f.act + extra;
+      const variacion = Math.round((f.act - f.ant) / f.ant * 100);
+      const ops = cuentas.map((c) => `${c} ${nombreCuenta(c)}`);
+      return {
+        enunciado: `<p>Analiza la razonabilidad de los gastos de ${MESES[mes - 1]} frente al mes anterior:</p><div class="desplazar"><table class="tabla"><thead><tr><th>Cuenta</th><th class="num">Mes anterior</th><th class="num">Mes actual</th></tr></thead><tbody>${filas.map((x) => `<tr><td>${x.c} ${nombreCuenta(x.c)}</td><td class="num mono">${pesos(x.ant)}</td><td class="num mono">${pesos(x.act)}</td></tr>`).join('')}</tbody></table></div>` +
+          `<p>Al revisar los soportes de la cuenta con la variación anormal encuentras ${caso.txt(extra)}. Registra la corrección.</p>`,
+        campos: [
+          { id: 'cta', tipo: 'opcion', etiqueta: '¿Qué cuenta tiene una variación no razonable?', ops, ok: cuentas.indexOf(caso.c) },
+          { id: 'var', etiqueta: 'Variación porcentual de esa cuenta (sin decimales)', valor: variacion, tol: 1, pista: '(Actual − anterior) ÷ anterior × 100.' }
+        ],
+        asientos: [asiento('Nota de contabilidad: corrección', fecha, caso.lin(extra))],
+        sugeridas: ['1528', '5195', '2335', '5145', '5135', '2205'],
+        solucion: pasos([`${caso.c}: (${miles(f.act)} − ${miles(f.ant)}) ÷ ${miles(f.ant)} × 100 = <b>${variacion} %</b>; las demás varían poco.`, `Causa: ${caso.txt(extra)}.`, 'La corrección lleva el valor a la cuenta correcta con una nota de contabilidad y su soporte.'])
+      };
+    } }
+});
+
 /* ---------- Crear ítems a partir de referencias (reproducibles) ---------- */
 const PREGUNTAS_MAPA = {};
 for (const q of PREGUNTAS) PREGUNTAS_MAPA[q.id] = q;
@@ -3022,7 +3231,7 @@ function vistaEtapa(v, p) {
     const rp = etapa.repaso[st.ej % etapa.repaso.length];
     c.innerHTML = `<div class="tarjeta pila"><div class="fila entre"><span class="etiqueta">Repaso express · lectura de 2 minutos · ejemplo ${(st.ej % etapa.repaso.length) + 1} de ${etapa.repaso.length}</span></div>
       <h3>${esc(rp.titulo)}</h3><div class="enunciado">${rp.concepto}</div>
-      <div class="solucion"><h4>Ejemplo resuelto</h4><p>${esc(rp.enunciado)}</p>${pasos(rp.pasos)}${tablaRepaso(rp.asiento)}${rp.nota ? `<p class="pequeno suave">${esc(rp.nota)}</p>` : ''}</div>
+      <div class="solucion"><h4>Ejemplo resuelto</h4><p>${esc(rp.enunciado)}</p>${pasos(rp.pasos)}${rp.asiento && rp.asiento.length ? tablaRepaso(rp.asiento) : ''}${rp.nota ? `<p class="pequeno suave">${esc(rp.nota)}</p>` : ''}</div>
       <div class="acciones"><button type="button" class="btn primario" id="btnSeguir" data-principal>Entendido: ir al ejercicio guiado</button>${etapa.repaso.length > 1 ? '<button type="button" class="btn" id="btnOtroEj">Ver otro ejemplo</button>' : ''}</div></div>`;
     $('#btnSeguir').onclick = () => avanzarA(1);
     const o = $('#btnOtroEj'); if (o) o.onclick = () => { st.ej++; guardar(); pintar(); };

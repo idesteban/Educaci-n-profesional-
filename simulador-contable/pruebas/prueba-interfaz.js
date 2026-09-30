@@ -91,7 +91,7 @@ async function recorrido(browser, nombre, opciones) {
   paso(`${nombre}: “Ver solución” muestra el asiento paso a paso`);
 
   // Etapas 6 y 7: repaso y ejercicio guiado se renderizan
-  for (const e of [6, 7]) {
+  for (const e of [6, 7, 1, 2, 4, 5, 8, 9, 10]) {
     await page.goto(archivo + '#etapa-' + e); await page.waitForSelector('text=Repaso express');
     await page.click('#btnSeguir'); await page.waitForSelector('#ejCont .item');
     const it = await page.evaluate((k) => crearItem(E.etapas[k].actual.ref), e);

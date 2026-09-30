@@ -120,6 +120,8 @@ ok(Number.isNaN(X.leerNumero('2+*3')), 'Operación inválida da NaN');
 /* ---------- 2. Repasos y banco de preguntas ---------- */
 seccion('Ejemplos de repaso de las etapas');
 for (const e of X.ETAPAS) for (const rp of e.repaso) {
+  ok(rp.titulo && rp.concepto && rp.enunciado && rp.pasos.length, `Repaso “${rp.titulo}” completo`);
+  if (!rp.asiento.length) continue;
   const d = rp.asiento.reduce((s, l) => s + l[1], 0), h = rp.asiento.reduce((s, l) => s + l[2], 0);
   igual(d, h, `Repaso “${rp.titulo}” cuadra`);
   for (const l of rp.asiento) ok(!!X.cuentaPUC(l[0]), `Cuenta ${l[0]} del repaso existe en el PUC`);
@@ -138,6 +140,10 @@ for (const q of Q) {
 }
 for (const t of X.TEMAS) { const n = Q.filter((q) => q.t === t.id).length; ok(n >= 8, `Tema ${t.id} tiene al menos 8 preguntas (tiene ${n})`); }
 for (const e of X.ETAPAS) { const n = Q.filter((q) => q.e === e.id).length; ok(n >= 2, `Etapa ${e.id} tiene preguntas para el diagnóstico (tiene ${n})`); }
+for (const e of X.ETAPAS) {
+  ok(e.repaso.length >= 2, `Etapa ${e.id} tiene al menos 2 repasos`);
+  for (const g of e.guiado.concat(e.independiente, e.mini.gens)) ok(!!X.GENERADORES[g], `Etapa ${e.id}: el generador ${g} existe`);
+}
 const correcta = (id) => { const q = Q.find((x) => x.id === id); return q.o[q.r]; };
 const contiene = (id, valor) => ok(correcta(id).includes(X.pesos(valor)), `${id}: la respuesta correcta contiene ${X.pesos(valor)} (dice “${correcta(id)}”)`);
 contiene('IM01', Calc.uvt(27)); contiene('IM02', Calc.uvt(4)); contiene('IM04', Calc.retefuente(800000, 'servicio', true).valor);
